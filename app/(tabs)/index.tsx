@@ -166,7 +166,9 @@ export default function HomeScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.topHeader, { backgroundColor: theme.colors.primary }]}>
-        <Text style={styles.headerTitle}>UrbanMentr</Text>
+        <Text style={styles.headerTitle}>Z</Text>
+        <Text style={styles.headerTitle1}>Mentor</Text>
+        <View style={{ flex: 2 }} />
         {!isMentor && (
           <TouchableOpacity
             style={styles.becomeMentorButton}
@@ -271,7 +273,7 @@ export default function HomeScreen() {
       <View style={[styles.section, styles.featuredSection, { backgroundColor: theme.colors.card }]}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Top Mentors</Text>
-          <Link href="/mentors" asChild>
+          <Link href="/category/mentors1" asChild>
             <TouchableOpacity>
               <Text style={[styles.seeAllLink, { color: theme.colors.primary }]}>See All</Text>
             </TouchableOpacity>
@@ -341,21 +343,24 @@ const styles = StyleSheet.create({
   },
   topHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 48,
     paddingBottom: 16,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffArgbargbargbargbargbargbargba',
+    color: '#fEf',
+  },
+  headerTitle1: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   becomeMentorButton: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(244, 255, 234, 0.3)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

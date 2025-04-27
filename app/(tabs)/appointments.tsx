@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, CircleAlert as AlertCircle, CreditCard as Edit } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, CircleAlert, CreditCard as Edit } from 'lucide-react-native';
 
 interface Appointment {
   id: string;
@@ -43,6 +43,14 @@ export default function AppointmentsScreen() {
     }
   }, [session]);
 
+  /* TODO : Subscribe to changes in appointments table */
+  // useEffect(() => {
+  //   const subscription = supabase
+  //   .from('appointments')
+  //  .on('*', payload => {
+  //    console.log('Change received!', payload);
+  //    fetchAppointments();
+  //
   async function fetchAppointments() {
     try {
       setLoading(true);
@@ -68,6 +76,7 @@ export default function AppointmentsScreen() {
 
       if (error) throw error;
       setAppointments(data || []);
+      console.log('Appointments fetched:', data);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       Alert.alert('Error', 'Failed to load appointments');
@@ -126,6 +135,16 @@ export default function AppointmentsScreen() {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleChat = (appointment: Appointment) => {
+    router.push({
+      pathname: '/chat',
+      params: {
+        appointmentId: appointment.id,
+        otherPartyId: appointment.mentor_id === session?.user.id ? appointment.user_id : appointment.mentor_id
+      }
+    });
   };
 
   const confirmAppointment = (appointmentId: string) => {
@@ -225,7 +244,6 @@ export default function AppointmentsScreen() {
             <Text style={[styles.detailText, { color: theme.colors.text }]}>{item.time}</Text>
           </View>
           <View style={styles.detailRow}>
-            <AlertCircle size={16} color={theme.colors.subtitle} />
             <Text style={[styles.detailText, { color: theme.colors.text }]} numberOfLines={2}>
               {item.problem_description}
             </Text>
@@ -257,6 +275,12 @@ export default function AppointmentsScreen() {
               <Text style={styles.actionButtonText}>Edit</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => handleChat(item)}>
+            <Edit size={20} color="#fff" />
+            <Text style={styles.actionButtonText}>Chat</Text>
+          </TouchableOpacity>
         </View>
 
         {updating && (
@@ -276,6 +300,7 @@ export default function AppointmentsScreen() {
         <Text style={[styles.title, { color: theme.colors.text }]}>Appointments</Text>
         <Text style={[styles.subtitle, { color: theme.colors.subtitle }]}>Manage your upcoming sessions</Text>
       </View>
+      <ScrollView>
 
       <FlatList
         data={appointments}
@@ -292,6 +317,7 @@ export default function AppointmentsScreen() {
         refreshing={loading}
         onRefresh={fetchAppointments}
       />
+      </ScrollView>
     </View>
   );
 }

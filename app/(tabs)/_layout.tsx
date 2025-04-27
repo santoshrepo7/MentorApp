@@ -35,7 +35,6 @@ export default function TabLayout() {
           tabBarIcon: ({ size, color }) => (
             <View>
               <Home size={size} color={color} />
-              <NotificationBadge />
             </View>
           ),
         }}
@@ -51,14 +50,23 @@ export default function TabLayout() {
         name="appointments"
         options={{
           title: 'Sessions',
-          tabBarIcon: ({ size, color }) => <Calendar size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => (
+            <View>
+              <Calendar size={size} color={color} />
+              <NotificationBadge />
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color }) => <UserCircle size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => (
+            <View>
+              <UserCircle size={size} color={color} />
+            </View>
+          ),
         }}
       />
     </Tabs>

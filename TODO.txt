@@ -1,0 +1,17 @@
+## TODO
+- Fix Signup and Profile Creation : Done
+- Subscribe to appointment change in Appointment list display so that latest appointments are shown
+
+
+
+
+
+
+
+## Features to be added
+- Create mentors and users list from app manually
+- Test what all feature are working and fix issue
+
+## BUGS
+- no back forward button screen
+- profile->notification not working

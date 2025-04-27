@@ -225,7 +225,6 @@ export default function AppointmentsScreen() {
             <Text style={[styles.detailText, { color: theme.colors.text }]}>{item.time}</Text>
           </View>
           <View style={styles.detailRow}>
-            <AlertCircle size={16} color={theme.colors.subtitle} />
             <Text style={[styles.detailText, { color: theme.colors.text }]} numberOfLines={2}>
               {item.problem_description}
             </Text>

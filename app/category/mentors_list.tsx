@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Platform }
 import { useRouter } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Star, ChevronRight, DollarSign } from 'lucide-react-native';
+import { Star, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/providers/ThemeProvider';
 import Animated, { 
   useAnimatedStyle, 
@@ -30,7 +30,6 @@ interface Mentor {
   expertise: string[];
   position: string;
   company: string;
-  hourly_rate: number;
 }
 
 export default function MentorsScreen() {
@@ -59,7 +58,6 @@ export default function MentorsScreen() {
           rating,
           position,
           company,
-          hourly_rate,
           profiles!professionals_id_fkey (
             full_name,
             avatar_url
@@ -81,8 +79,7 @@ export default function MentorsScreen() {
         rating: mentor.rating || 0,
         expertise: mentor.expertise || [],
         position: mentor.position || '',
-        company: mentor.company || '',
-        hourly_rate: mentor.hourly_rate || 0
+        company: mentor.company || ''
       }));
 
       setMentors(formattedMentors);
@@ -170,6 +167,13 @@ export default function MentorsScreen() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
+      <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>Featured Mentors</Text>
+        <Text style={[styles.subtitle, { color: theme.colors.subtitle }]}>
+          {currentIndex + 1} of {mentors.length}
+        </Text>
+      </View>
+
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.mentorContainer, rStyle]}>
           <TouchableOpacity
@@ -186,45 +190,28 @@ export default function MentorsScreen() {
                 <Text style={styles.mentorPosition}>
                   {currentMentor.position} at {currentMentor.company}
                 </Text>
-
+                <View style={styles.ratingContainer}>
+                  <Star size={20} color="#fbbf24" fill="#fbbf24" />
+                  <Text style={styles.ratingText}>{currentMentor.rating.toFixed(1)}</Text>
+                </View>
                 <View style={styles.expertiseContainer}>
                   {currentMentor.expertise.slice(0, 3).map((exp, index) => (
                     <View key={index} style={styles.expertiseTag}>
                       <Text style={styles.expertiseText}>{exp}</Text>
                     </View>
                   ))}
-                  {currentMentor.expertise.length > 3 && (
-                    <View style={styles.expertiseTag}>
-                      <Text style={styles.expertiseText}>+{currentMentor.expertise.length - 3} more</Text>
-                    </View>
-                  )}
                 </View>
-                <View style={styles.statsRow}>
-                  <View style={styles.ratingContainer}>
-                    <Star size={16} color="#fbbf24" fill="#fbbf24" />
-                    <Text style={styles.ratingText}>{currentMentor.rating.toFixed(1)}</Text>
-                  </View>
-
-                  <View style={styles.rateContainer}>
-                    <DollarSign size={20} color="#22c55e" />
-                    <Text style={styles.rateText}>${currentMentor.hourly_rate}/hr</Text>
-                  </View>
-                </View>
+                <TouchableOpacity 
+                  style={styles.viewProfileButton}
+                  onPress={() => navigateToProfile(currentMentor.id)}>
+                  <Text style={styles.viewProfileText}>View Full Profile</Text>
+                  <ChevronRight size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
             </View>
           </TouchableOpacity>
-          <Text style={styles.bioText}>
-            {currentMentor.bio}
-          </Text>
-          <TouchableOpacity 
-            style={styles.viewProfileButton}
-            onPress={() => navigateToProfile(currentMentor.id)}>
-            <Text style={styles.viewProfileText}>View Full Profile</Text>
-            <ChevronRight size={20} color="#fff" />
-          </TouchableOpacity>
         </Animated.View>
       </GestureDetector>
-
 
       <View style={styles.instructions}>
         <Text style={[styles.instructionText, { color: theme.colors.subtitle }]}>
@@ -269,63 +256,32 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
     padding: 20,
   },
   mentorInfo: {
-    gap: 1,
+    gap: 8,
   },
   mentorName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
   },
   mentorPosition: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#fff',
     opacity: 0.9,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(251, 191, 36, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 2,
-    borderRadius: 20,
   },
   ratingText: {
-    color: '#fbbf24',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  rateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-    paddingHorizontal: 6,
-    borderRadius: 20,
-  },
-  rateText: {
-    color: '#22c55e',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  bioText: {
-    height: 100,
-    flexWrap: 'wrap',
-    marginTop: 16,
-    fontSize: 16,
     color: '#fff',
-    lineHeight: 24,
-    opacity: 0.9,
+    fontSize: 16,
+    fontWeight: '600',
   },
   expertiseContainer: {
     flexDirection: 'row',
@@ -347,16 +303,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 24,
     alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 16,
   },
   viewProfileText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
+    marginRight: 8,
   },
   instructions: {
     padding: 20,
