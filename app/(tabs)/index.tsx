@@ -166,7 +166,7 @@ export default function HomeScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.topHeader, { backgroundColor: theme.colors.primary }]}>
-        <Text style={styles.headerTitle}>MentorMatch</Text>
+        <Text style={styles.headerTitle}>UrbanMentr</Text>
         {!isMentor && (
           <TouchableOpacity
             style={styles.becomeMentorButton}
@@ -235,6 +235,37 @@ export default function HomeScreen() {
           />
         </View>
       </View>
+      {/* Categories Section */}
+      <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Popular Categories</Text>
+        <View style={styles.categoriesGrid}>
+          {featuredCategories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
+              onPress={() => router.push(`/category/${category.id}`)}>
+              <Image
+                source={{ uri: category.image_url }}
+                style={styles.categoryImage}
+              />
+              <View style={[styles.categoryContent, { backgroundColor: theme.colors.card }]}>
+                <Text style={[styles.categoryName, { color: theme.colors.text }]}>{category.name}</Text>
+                <View style={styles.categoryFooter}>
+                  <Text style={[styles.categorySubtext, { color: theme.colors.subtitle }]}>
+                    {category.subcategories.length} subcategories
+                  </Text>
+                  <ChevronRight size={16} color={theme.colors.subtitle} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Link href="/categories" asChild>
+          <TouchableOpacity style={[styles.viewAllButton, { backgroundColor: theme.colors.background }]}>
+            <Text style={[styles.viewAllButtonText, { color: theme.colors.primary }]}>View All Categories</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
 
       {/* Featured Mentors */}
       <View style={[styles.section, styles.featuredSection, { backgroundColor: theme.colors.card }]}>
@@ -276,10 +307,9 @@ export default function HomeScreen() {
                     <View style={styles.ratingContainer}>
                       <Star size={16} color="#fbbf24" fill="#fbbf24" />
                       <Text style={[styles.ratingText, { color: theme.colors.subtitle }]}>{mentor.rating.toFixed(1)}</Text>
-                      <Text style={[styles.rateText, { color: theme.colors.primary }]}>${mentor.hourly_rate}/hr</Text>
                     </View>
                     <Text style={[styles.mentorBio, { color: theme.colors.subtitle }]} numberOfLines={2}>
-                      {mentor.bio}
+                      {mentor.bio.length > 30 ? `${mentor.bio.slice(0, 30)}...` : mentor.bio}
                     </Text>
                     <View style={styles.mentorTags}>
                       {mentor.expertise.slice(0, 2).map((skill, index) => (
@@ -301,37 +331,6 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
-      {/* Categories Section */}
-      <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Popular Categories</Text>
-        <View style={styles.categoriesGrid}>
-          {featuredCategories.map((category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
-              onPress={() => router.push(`/category/${category.id}`)}>
-              <Image
-                source={{ uri: category.image_url }}
-                style={styles.categoryImage}
-              />
-              <View style={[styles.categoryContent, { backgroundColor: theme.colors.card }]}>
-                <Text style={[styles.categoryName, { color: theme.colors.text }]}>{category.name}</Text>
-                <View style={styles.categoryFooter}>
-                  <Text style={[styles.categorySubtext, { color: theme.colors.subtitle }]}>
-                    {category.subcategories.length} subcategories
-                  </Text>
-                  <ChevronRight size={16} color={theme.colors.subtitle} />
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Link href="/categories" asChild>
-          <TouchableOpacity style={[styles.viewAllButton, { backgroundColor: theme.colors.background }]}>
-            <Text style={[styles.viewAllButtonText, { color: theme.colors.primary }]}>View All Categories</Text>
-          </TouchableOpacity>
-        </Link>
-      </View>
     </ScrollView>
   );
 }
@@ -351,7 +350,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#ffArgbargbargbargbargbargbargba',
   },
   becomeMentorButton: {
     flexDirection: 'row',

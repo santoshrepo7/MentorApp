@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star } from 'lucide-react-native';
@@ -15,6 +15,7 @@ interface Mentor {
 }
 
 export default function MentorsScreen() {
+  const {categoryId, subcategoryId} = useLocalSearchParams();
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +30,7 @@ export default function MentorsScreen() {
         .select(`
           id,
           bio,
-          position as title,
+          position,
           expertise,
           rating,
           profiles!professionals_id_fkey (
@@ -47,7 +48,7 @@ export default function MentorsScreen() {
       const formattedMentors = data.map(mentor => ({
         id: mentor.id,
         full_name: mentor.profiles.full_name,
-        title: mentor.title || 'Professional Mentor',
+        title: mentor.position || 'Professional Mentor',
         bio: mentor.bio || '',
         avatar_url: mentor.profiles.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
         rating: mentor.rating || 0,

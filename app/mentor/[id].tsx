@@ -201,12 +201,6 @@ export default function MentorProfileScreen() {
           {mentor.position} at {mentor.company}
         </Text>
         
-        <View style={[styles.onlineStatus, { backgroundColor: mentor.online_status ? theme.colors.success + '20' : theme.colors.subtitle + '20' }]}>
-          <View style={[styles.statusDot, mentor.online_status ? styles.onlineDot : styles.offlineDot]} />
-          <Text style={[styles.statusText, { color: mentor.online_status ? theme.colors.success : theme.colors.subtitle }]}>
-            {getLastSeenText()}
-          </Text>
-        </View>
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -228,6 +222,7 @@ export default function MentorProfileScreen() {
       </View>
 
       {/* Quick Actions */}
+      {/*
       <View style={[styles.quickActions, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
         <View style={styles.actionButtons}>
           <TouchableOpacity 
@@ -249,12 +244,13 @@ export default function MentorProfileScreen() {
             <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>Email</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={[styles.bookButton, { backgroundColor: theme.colors.primary }]} 
-          onPress={handleBookSession}>
-          <Text style={styles.bookButtonText}>Book Session (${mentor.hourly_rate}/hr)</Text>
-        </TouchableOpacity>
       </View>
+      */}
+      <TouchableOpacity 
+        style={[styles.bookButton, { backgroundColor: theme.colors.primary }]} 
+        onPress={handleBookSession}>
+        <Text style={styles.bookButtonText}>Book Session (${mentor.hourly_rate}/hr)</Text>
+      </TouchableOpacity>
 
       {/* About Section */}
       <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
@@ -386,14 +382,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   hero: {
-    padding: 20,
+    flex: 3,
     alignItems: 'center',
     borderBottomWidth: 1,
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: '100%',
+    height: 256,
+    marginTop: 16,
     marginBottom: 16,
   },
   name: {
@@ -426,29 +422,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#94a3b8',
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 12,
   },
   statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingBottom: 16,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 10,
     marginVertical: 4,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 10,
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 10,
   },
   quickActions: {
     padding: 16,

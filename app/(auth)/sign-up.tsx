@@ -7,6 +7,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullname, setFullname] = useState('');
   const [error, setError] = useState('');
   const { signUp } = useAuth();
   const { theme } = useTheme();
@@ -14,7 +15,8 @@ export default function SignUp() {
   const handleSignUp = async () => {
     try {
       setError('');
-      await signUp(email, password);
+      await signUp(fullname, email, password);
+
     } catch (err) {
       setError('Error creating account');
     }
@@ -34,6 +36,23 @@ export default function SignUp() {
 
       <View style={styles.form}>
         {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.colors.text }]}>Email</Text>
+          <TextInput
+            style={[styles.input, { 
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+              color: theme.colors.text
+            }]}
+            value={fullname}
+            onChangeText={setFullname}
+            placeholder="Enter your full name"
+            placeholderTextColor={theme.colors.placeholder}
+            keyboardType="default"
+            autoCapitalize="none"
+          />
+        </View>
 
         <View style={styles.inputContainer}>
           <Text style={[styles.label, { color: theme.colors.text }]}>Email</Text>

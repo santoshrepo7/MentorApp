@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Platform } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { categories } from '@/data/categories';
-import { Check } from 'lucide-react-native';
+import { Check, Camera } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 interface FormData {
   bio: string;
@@ -36,6 +37,8 @@ export default function BecomeMentorScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
 
   const [formData, setFormData] = useState<FormData>({
     bio: '',
@@ -60,6 +63,61 @@ export default function BecomeMentorScreen() {
     work_experience: [''],
   });
 
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload images.');
+        }
+      }
+    })();
+  }, []);
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const file = result.assets[0];
+        setProfileImage(file.uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadImage = async (uri: string): Promise<string | null> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileExt = uri.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${session?.user.id}/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
@@ -72,6 +130,22 @@ export default function BecomeMentorScreen() {
       // Validate required fields
       if (!formData.bio || !formData.years_of_experience || !formData.hourly_rate) {
         throw new Error('Please fill in all required fields');
+      }
+
+      let avatarUrl = null;
+      if (profileImage) {
+        avatarUrl = await uploadImage(profileImage);
+        if (!avatarUrl) {
+          throw new Error('Failed to upload profile image');
+        }
+
+        // Update profile avatar_url
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', session.user.id);
+
+        if (profileError) throw profileError;
       }
 
       // Create professional profile
@@ -162,7 +236,21 @@ export default function BecomeMentorScreen() {
         </View>
       )}
 
+
       <View style={styles.form}>
+        {/* Profile Image Section */}
+        <View style={styles.imageSection}>
+          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <Camera size={40} color="#64748b" />
+                <Text style={styles.placeholderText}>Add Profile Picture</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
         {/* Bio */}
         <View style={styles.field}>
           <Text style={styles.label}>Professional Bio*</Text>
@@ -548,5 +636,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  imageSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  imageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
 });

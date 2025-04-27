@@ -13,7 +13,7 @@ export default function CategoryScreen() {
   const handleSubcategoryPress = (subcategoryId: string) => {
     setSelectedSubcategory(subcategoryId);
     router.push({
-      pathname: '/mentors',
+      pathname: '/category/mentors',
       params: { categoryId: id, subcategoryId }
     });
   };

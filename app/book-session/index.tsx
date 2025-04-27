@@ -50,7 +50,6 @@ export default function BookSessionScreen() {
         <Text style={styles.subtitle}>Select your preferred date and time</Text>
       </View>
 
-      {/* Problem Description */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>What would you like to discuss?</Text>
         <View style={styles.descriptionContainer}>
@@ -65,14 +64,12 @@ export default function BookSessionScreen() {
           />
           {!problemDescription.trim() && (
             <View style={styles.warningContainer}>
-              <AlertCircle size={16} color="#f59e0b" />
               <Text style={styles.warningText}>Please provide a brief description of your needs</Text>
             </View>
           )}
         </View>
       </View>
 
-      {/* Session Type Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Session Type</Text>
         <View style={styles.typeContainer}>
@@ -100,7 +97,6 @@ export default function BookSessionScreen() {
         </View>
       </View>
 
-      {/* Date Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Date</Text>
         <View style={styles.dateContainer}>
@@ -137,7 +133,6 @@ export default function BookSessionScreen() {
         </View>
       </View>
 
-      {/* Time Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Time</Text>
         <View style={styles.timeContainer}>
@@ -165,7 +160,6 @@ export default function BookSessionScreen() {
         </View>
       </View>
 
-      {/* Summary */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Session Summary</Text>
         <View style={styles.summaryContainer}>
@@ -184,7 +178,6 @@ export default function BookSessionScreen() {
         </View>
       </View>
 
-      {/* Book Button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={[

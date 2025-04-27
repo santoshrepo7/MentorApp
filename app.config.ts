@@ -1,24 +1,24 @@
 import { ExpoConfig } from 'expo/config';
 
 const defineConfig = (): ExpoConfig => ({
-  name: "MentorMatch",
-  slug: "mentor-match",
+  name: "UrbanMentr",
+  slug: "urban-mentr",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
-  scheme: "mentor-match",
+  scheme: "urban-mentr",
   userInterfaceStyle: "automatic",
   assetBundlePatterns: ["**/*"],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.mentormatch.app"
+    bundleIdentifier: "com.urbanmentr.app"
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#0c4a6e"
     },
-    package: "com.mentormatch.app"
+    package: "com.urbanmentr.app"
   },
   web: {
     bundler: "metro",

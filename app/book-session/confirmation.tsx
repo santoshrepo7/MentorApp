@@ -44,7 +44,7 @@ export default function BookingConfirmationScreen() {
       setLoading(true);
 
       // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      //await new Promise(resolve => setTimeout(resolve, 10));
 
       // Create appointment
       const { data: appointment, error: appointmentError } = await supabase
