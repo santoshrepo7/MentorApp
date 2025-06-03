@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Pressable, Modal, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Star, MapPin, Clock, Calendar, ChevronRight, Globe as Globe2, Mail, Languages, MessageSquare, Phone } from 'lucide-react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import BackHeader from '@/components/BackHeader';
 
 interface MentorProfile {
   id: string;
@@ -190,6 +191,7 @@ export default function MentorProfileScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <BackHeader />
       {/* Hero Section */}
       <View style={[styles.hero, { backgroundColor: theme.colors.card }]}>
         <Image
@@ -246,11 +248,11 @@ export default function MentorProfileScreen() {
         </View>
       </View>
       */}
-      <TouchableOpacity 
+      <Pressable 
         style={[styles.bookButton, { backgroundColor: theme.colors.primary }]} 
         onPress={handleBookSession}>
         <Text style={styles.bookButtonText}>Book Session (${mentor.hourly_rate}/hr)</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       {/* About Section */}
       <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
@@ -343,16 +345,16 @@ export default function MentorProfileScreen() {
               textAlignVertical="top"
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity
+              <Pressable
                 style={[styles.modalButton, styles.cancelButton, { borderColor: theme.colors.border }]}
                 onPress={() => setShowChatModal(false)}>
                 <Text style={[styles.cancelButtonText, { color: theme.colors.subtitle }]}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </Pressable>
+              <Pressable
                 style={[styles.modalButton, styles.sendButton, { backgroundColor: theme.colors.primary }]}
                 onPress={handleSendMessage}>
                 <Text style={styles.sendButtonText}>Send</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           </View>
         </View>

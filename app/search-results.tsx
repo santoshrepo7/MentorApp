@@ -3,6 +3,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star } from 'lucide-react-native';
+import BackHeader from '@/components/BackHeader';
+import { useTheme } from '@/providers/ThemeProvider';
 
 interface Mentor {
   id: string;
@@ -19,6 +21,7 @@ export default function SearchResults() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { theme } = useTheme();
 
   useEffect(() => {
     searchMentors();
@@ -42,12 +45,8 @@ export default function SearchResults() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Search Results</Text>
-        <Text style={styles.subtitle}>Results for "{query}"</Text>
-      </View>
-
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <BackHeader title="Search Results" subtitle={`Results for "${query}"`} />
       <FlatList
         data={mentors}
         keyExtractor={(item) => item.id}
