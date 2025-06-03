@@ -17,6 +17,7 @@ function RootLayoutNav() {
           contentStyle: { backgroundColor: theme.colors.background },
           animation: 'fade',
         }}>
+        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ title: 'Oops!' }} />
