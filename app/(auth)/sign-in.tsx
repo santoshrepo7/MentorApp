@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Mail, Lock, Phone, Linkedin, Twitter, Chrome as Google } from 'lucide-react-native';
+import { Mail, Lock, Phone, Linkedin, Twitter, ToggleLeft as Google } from 'lucide-react-native';
 import { parsePhoneNumber } from 'libphonenumber-js';
 
 export default function SignIn() {
