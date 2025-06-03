@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ThemeProvider, useTheme } from '@/providers/ThemeProvider';
+import { CategoriesProvider } from '@/providers/CategoriesProvider';
 
 function RootLayoutNav() {
   const { theme, isDarkMode } = useTheme();
@@ -31,7 +32,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <CategoriesProvider>
+          <RootLayoutNav />
+        </CategoriesProvider>
       </AuthProvider>
     </ThemeProvider>
   );

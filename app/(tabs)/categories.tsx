@@ -1,10 +1,27 @@
 import { View, Text, StyleSheet, FlatList, Pressable, Image } from 'react-native';
 import { Link } from 'expo-router';
-import { categories, Category } from '@/data/categories';
+import { useCategories } from '@/providers/CategoriesProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 
 export default function CategoriesScreen() {
+  const { categories, loading, error } = useCategories();
   const { theme } = useTheme();
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.subtitle }]}>Loading categories...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -115,5 +132,15 @@ const styles = StyleSheet.create({
   moreText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
