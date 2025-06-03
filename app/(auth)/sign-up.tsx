@@ -38,7 +38,7 @@ export default function SignUp() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>Email</Text>
+          <Text style={[styles.label, { color: theme.colors.text }]}>Name</Text>
           <TextInput
             style={[styles.input, { 
               backgroundColor: theme.colors.card,

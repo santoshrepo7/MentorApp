@@ -301,6 +301,7 @@ export default function AppointmentsScreen() {
         <Text style={[styles.subtitle, { color: theme.colors.subtitle }]}>Manage your upcoming sessions</Text>
       </View>
       <ScrollView>
+        <View style={{ padding: 16 }}>
 
       <FlatList
         data={appointments}
@@ -317,6 +318,7 @@ export default function AppointmentsScreen() {
         refreshing={loading}
         onRefresh={fetchAppointments}
       />
+        </View>
       </ScrollView>
     </View>
   );
