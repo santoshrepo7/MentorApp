@@ -2,19 +2,25 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSegments } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (fullname: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   requireAuth: () => Promise<boolean>;
+  signInWithProvider: (provider: 'google' | 'linkedin' | 'twitter') => Promise<void>;
+  signInWithPhone: (phoneNumber: string) => Promise<void>;
+  verifyOtp: (phoneNumber: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// List of protected routes that require authentication
 const PROTECTED_ROUTES = [
   'become-mentor',
   'book-session',
@@ -64,20 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (fullname: string, email: string, password: string) => {
-    const { data,  error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
-    console.log(data.session.user);
-    console.log(data.session.user.id);
-    console.log(data.session.user.user_id);
+    if (error) throw error;
 
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
-        id: data.session.user.id,
+        id: data.session?.user.id,
         full_name: fullname,
-      }, true);
+      });
 
     if (profileError) throw profileError;
   };
@@ -95,8 +99,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  const signInWithProvider = async (provider: 'google' | 'linkedin' | 'twitter') => {
+    const redirectUrl = makeRedirectUri({
+      path: '/(auth)/callback',
+    });
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) throw error;
+
+    if (data.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      if (result.type === 'success') {
+        const { url } = result;
+        await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: url } });
+      }
+    }
+  };
+
+  const signInWithPhone = async (phoneNumber: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: phoneNumber,
+    });
+    if (error) throw error;
+  };
+
+  const verifyOtp = async (phoneNumber: string, otp: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      phone: phoneNumber,
+      token: otp,
+      type: 'sms',
+    });
+    if (error) throw error;
+  };
+
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signUp, signOut, requireAuth }}>
+    <AuthContext.Provider value={{
+      session,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      requireAuth,
+      signInWithProvider,
+      signInWithPhone,
+      verifyOtp
+    }}>
       {children}
     </AuthContext.Provider>
   );
