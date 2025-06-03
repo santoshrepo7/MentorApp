@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView 
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Mail, Lock, Phone, Linkedin, Twitter, Google } from 'lucide-react-native';
+import { Mail, Lock, Phone, Linkedin, Twitter, ToggleLeft as Google } from 'lucide-react-native';
 import { parsePhoneNumber } from 'libphonenumber-js';
 
 export default function SignIn() {
