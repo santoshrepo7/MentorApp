@@ -3,22 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image,
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { Plus, Camera, X } from 'lucide-react-native';
+import { categories } from '@/data/categories';
+import { Check, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
-
-interface Category {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface Subcategory {
-  id: string;
-  name: string;
-  description?: string;
-  category_id: string;
-}
 
 interface FormData {
   bio: string;
@@ -44,19 +31,14 @@ interface FormData {
 }
 
 export default function BecomeMentorScreen() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
-  const [newCategory, setNewCategory] = useState('');
-  const [newSubcategory, setNewSubcategory] = useState({ name: '', categoryId: '' });
-  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
-  const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
   const { session } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
 
   const [formData, setFormData] = useState<FormData>({
     bio: '',
@@ -82,83 +64,131 @@ export default function BecomeMentorScreen() {
   });
 
   useEffect(() => {
-    fetchCategories();
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload images.');
+        }
+      }
+    })();
   }, []);
 
-  const fetchCategories = async () => {
+  const pickImage = async () => {
     try {
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-      if (categoriesError) throw categoriesError;
-      setCategories(categoriesData);
-
-      const { data: subcategoriesData, error: subcategoriesError } = await supabase
-        .from('subcategories')
-        .select('*')
-        .order('name');
-
-      if (subcategoriesError) throw subcategoriesError;
-      setSubcategories(subcategoriesData);
+      if (!result.canceled) {
+        const file = result.assets[0];
+        setProfileImage(file.uri);
+      }
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      Alert.alert('Error', 'Failed to load categories');
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadImage = async (uri: string): Promise<string | null> => {
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileExt = uri.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${session?.user.id}/${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, blob);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!session?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Validate required fields
+      if (!formData.bio || !formData.years_of_experience || !formData.hourly_rate) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      let avatarUrl = null;
+      if (profileImage) {
+        avatarUrl = await uploadImage(profileImage);
+        if (!avatarUrl) {
+          throw new Error('Failed to upload profile image');
+        }
+
+        // Update profile avatar_url
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', session.user.id);
+
+        if (profileError) throw profileError;
+      }
+
+      // Create professional profile
+      const { error: insertError } = await supabase
+        .from('professionals')
+        .insert({
+          id: session.user.id,
+          ...formData,
+          years_of_experience: parseInt(formData.years_of_experience),
+          hourly_rate: parseFloat(formData.hourly_rate),
+          is_verified: false,
+          online_status: false,
+        });
+
+      if (insertError) throw insertError;
+
+      router.replace('/profile');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddCategory = async () => {
-    if (!newCategory.trim()) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert({
-          id: newCategory.toLowerCase().replace(/\s+/g, '-'),
-          name: newCategory,
-          icon: 'Briefcase', // Default icon
-          image_url: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg' // Default image
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setCategories([...categories, data]);
-      setNewCategory('');
-      setShowNewCategoryInput(false);
-    } catch (error) {
-      console.error('Error adding category:', error);
-      Alert.alert('Error', 'Failed to add category');
-    }
+  const handleArrayInput = (field: keyof FormData, index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].map((item: string, i: number) => (i === index ? value : item)),
+    }));
   };
 
-  const handleAddSubcategory = async () => {
-    if (!newSubcategory.name.trim() || !newSubcategory.categoryId) return;
+  const addArrayField = (field: keyof FormData) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...prev[field], ''],
+    }));
+  };
 
-    try {
-      const { data, error } = await supabase
-        .from('subcategories')
-        .insert({
-          id: `${newSubcategory.categoryId}-${newSubcategory.name.toLowerCase().replace(/\s+/g, '-')}`,
-          name: newSubcategory.name,
-          category_id: newSubcategory.categoryId
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setSubcategories([...subcategories, data]);
-      setNewSubcategory({ name: '', categoryId: '' });
-      setShowNewSubcategoryInput(false);
-    } catch (error) {
-      console.error('Error adding subcategory:', error);
-      Alert.alert('Error', 'Failed to add subcategory');
-    }
+  const removeArrayField = (field: keyof FormData, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_: string, i: number) => i !== index),
+    }));
   };
 
   const toggleCategory = (categoryId: string) => {
@@ -195,132 +225,278 @@ export default function BecomeMentorScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Categories Section */}
-      <View style={styles.field}>
-        <Text style={styles.label}>Categories*</Text>
-        <View style={styles.categoriesGrid}>
-          {categories.map(category => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategories.includes(category.id) && styles.selectedChip
-              ]}
-              onPress={() => toggleCategory(category.id)}>
-              <Text style={[
-                styles.chipText,
-                selectedCategories.includes(category.id) && styles.selectedChipText
-              ]}>
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        
-        {showNewCategoryInput ? (
-          <View style={styles.newItemContainer}>
-            <TextInput
-              style={styles.newItemInput}
-              value={newCategory}
-              onChangeText={setNewCategory}
-              placeholder="Enter new category name"
-            />
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={handleAddCategory}>
-              <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowNewCategoryInput(false)}>
-              <X size={20} color="#ef4444" />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.addNewButton}
-            onPress={() => setShowNewCategoryInput(true)}>
-            <Plus size={20} color="#0891b2" />
-            <Text style={styles.addNewButtonText}>Add New Category</Text>
-          </TouchableOpacity>
-        )}
+      <View style={styles.header}>
+        <Text style={styles.title}>Become a Mentor</Text>
+        <Text style={styles.subtitle}>Share your expertise and help others grow</Text>
       </View>
 
-      {/* Subcategories Section */}
-      {selectedCategories.length > 0 && (
-        <View style={styles.field}>
-          <Text style={styles.label}>Specializations*</Text>
-          <View style={styles.categoriesGrid}>
-            {subcategories
-              .filter(sub => selectedCategories.includes(sub.category_id))
-              .map(subcategory => (
-                <TouchableOpacity
-                  key={subcategory.id}
-                  style={[
-                    styles.categoryChip,
-                    selectedSubcategories.includes(subcategory.id) && styles.selectedChip
-                  ]}
-                  onPress={() => toggleSubcategory(subcategory.id)}>
-                  <Text style={[
-                    styles.chipText,
-                    selectedSubcategories.includes(subcategory.id) && styles.selectedChipText
-                  ]}>
-                    {subcategory.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-          </View>
-
-          {showNewSubcategoryInput ? (
-            <View style={styles.newItemContainer}>
-              <View style={styles.newSubcategoryInputs}>
-                <TextInput
-                  style={[styles.newItemInput, { flex: 2 }]}
-                  value={newSubcategory.name}
-                  onChangeText={(text) => setNewSubcategory(prev => ({ ...prev, name: text }))}
-                  placeholder="Enter new specialization name"
-                />
-                <View style={[styles.newItemInput, { flex: 1 }]}>
-                  <Picker
-                    selectedValue={newSubcategory.categoryId}
-                    onValueChange={(itemValue) => 
-                      setNewSubcategory(prev => ({ ...prev, categoryId: itemValue }))
-                    }>
-                    <Picker.Item label="Select Category" value="" />
-                    {selectedCategories.map(catId => {
-                      const category = categories.find(c => c.id === catId);
-                      return category ? (
-                        <Picker.Item 
-                          key={category.id} 
-                          label={category.name} 
-                          value={category.id} 
-                        />
-                      ) : null;
-                    })}
-                  </Picker>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={handleAddSubcategory}>
-                <Text style={styles.addButtonText}>Add</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowNewSubcategoryInput(false)}>
-                <X size={20} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.addNewButton}
-              onPress={() => setShowNewSubcategoryInput(true)}>
-              <Plus size={20} color="#0891b2" />
-              <Text style={styles.addNewButtonText}>Add New Specialization</Text>
-            </TouchableOpacity>
-          )}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
+
+
+      <View style={styles.form}>
+        {/* Profile Image Section */}
+        <View style={styles.imageSection}>
+          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <Camera size={40} color="#64748b" />
+                <Text style={styles.placeholderText}>Add Profile Picture</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+        {/* Bio */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Professional Bio*</Text>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            numberOfLines={4}
+            value={formData.bio}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, bio: value }))}
+            placeholder="Tell us about your professional background and expertise"
+          />
+        </View>
+
+        {/* Basic Info */}
+        <View style={styles.row}>
+          <View style={[styles.field, styles.halfWidth]}>
+            <Text style={styles.label}>Years of Experience*</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={formData.years_of_experience}
+              onChangeText={(value) => setFormData(prev => ({ ...prev, years_of_experience: value }))}
+              placeholder="e.g., 5"
+            />
+          </View>
+          <View style={[styles.field, styles.halfWidth]}>
+            <Text style={styles.label}>Hourly Rate (USD)*</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={formData.hourly_rate}
+              onChangeText={(value) => setFormData(prev => ({ ...prev, hourly_rate: value }))}
+              placeholder="e.g., 50"
+            />
+          </View>
+        </View>
+
+        {/* Categories */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Categories*</Text>
+          <View style={styles.categoriesGrid}>
+            {categories.map(category => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryChip,
+                  selectedCategories.includes(category.id) && styles.selectedChip
+                ]}
+                onPress={() => toggleCategory(category.id)}>
+                <Text style={[
+                  styles.chipText,
+                  selectedCategories.includes(category.id) && styles.selectedChipText
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Subcategories */}
+        {selectedCategories.length > 0 && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Specializations*</Text>
+            <View style={styles.categoriesGrid}>
+              {categories
+                .filter(cat => selectedCategories.includes(cat.id))
+                .map(category => category.subcategories)
+                .flat()
+                .map(subcategory => (
+                  <TouchableOpacity
+                    key={subcategory.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedSubcategories.includes(subcategory.id) && styles.selectedChip
+                    ]}
+                    onPress={() => toggleSubcategory(subcategory.id)}>
+                    <Text style={[
+                      styles.chipText,
+                      selectedSubcategories.includes(subcategory.id) && styles.selectedChipText
+                    ]}>
+                      {subcategory.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          </View>
+        )}
+
+        {/* Professional Details */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Current Position*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.position}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, position: value }))}
+            placeholder="e.g., Senior Software Engineer"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Company*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.company}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, company: value }))}
+            placeholder="e.g., Tech Corp"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Industry*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.industry}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, industry: value }))}
+            placeholder="e.g., Technology"
+          />
+        </View>
+
+        {/* Education */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Education</Text>
+          {formData.education.map((edu, index) => (
+            <View key={index} style={styles.arrayField}>
+              <TextInput
+                style={[styles.input, styles.arrayInput]}
+                value={edu}
+                onChangeText={(value) => handleArrayInput('education', index, value)}
+                placeholder="e.g., MS Computer Science, Stanford University"
+              />
+              {index > 0 && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeArrayField('education', index)}>
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => addArrayField('education')}>
+            <Text style={styles.addButtonText}>+ Add Education</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Certifications */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Certifications</Text>
+          {formData.certifications.map((cert, index) => (
+            <View key={index} style={styles.arrayField}>
+              <TextInput
+                style={[styles.input, styles.arrayInput]}
+                value={cert}
+                onChangeText={(value) => handleArrayInput('certifications', index, value)}
+                placeholder="e.g., AWS Certified Solutions Architect"
+              />
+              {index > 0 && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeArrayField('certifications', index)}>
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => addArrayField('certifications')}>
+            <Text style={styles.addButtonText}>+ Add Certification</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Teaching Style */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Teaching Style*</Text>
+          <TextInput
+            style={styles.textArea}
+            multiline
+            numberOfLines={4}
+            value={formData.teaching_style}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, teaching_style: value }))}
+            placeholder="Describe your approach to mentoring and teaching"
+          />
+        </View>
+
+        {/* Languages */}
+        <View style={styles.field}>
+          <Text style={styles.label}>Languages</Text>
+          {formData.languages.map((lang, index) => (
+            <View key={index} style={styles.arrayField}>
+              <TextInput
+                style={[styles.input, styles.arrayInput]}
+                value={lang}
+                onChangeText={(value) => handleArrayInput('languages', index, value)}
+                placeholder="e.g., English (Native)"
+              />
+              {index > 0 && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeArrayField('languages', index)}>
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => addArrayField('languages')}>
+            <Text style={styles.addButtonText}>+ Add Language</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Social Links */}
+        <View style={styles.field}>
+          <Text style={styles.label}>LinkedIn Profile</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.linkedin_url}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, linkedin_url: value }))}
+            placeholder="https://linkedin.com/in/yourprofile"
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Personal Website</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.website_url}
+            onChangeText={(value) => setFormData(prev => ({ ...prev, website_url: value }))}
+            placeholder="https://yourwebsite.com"
+            autoCapitalize="none"
+          />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}>
+          <Text style={styles.submitButtonText}>
+            {loading ? 'Submitting...' : 'Submit Application'}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -330,6 +506,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  header: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
+  },
+  errorContainer: {
+    margin: 20,
+    padding: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+  },
+  form: {
+    padding: 20,
+  },
   field: {
     marginBottom: 20,
   },
@@ -338,6 +545,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0f172a',
     marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#0f172a',
+  },
+  textArea: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#0f172a',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  halfWidth: {
+    flex: 1,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -360,45 +594,21 @@ const styles = StyleSheet.create({
   selectedChipText: {
     color: '#fff',
   },
-  newItemContainer: {
+  arrayField: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    gap: 8,
+    marginBottom: 8,
   },
-  newItemInput: {
+  arrayInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    marginRight: 8,
   },
-  newSubcategoryInputs: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  addNewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#0891b2',
-    borderStyle: 'dashed',
-  },
-  addNewButtonText: {
-    color: '#0891b2',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  cancelButton: {
+  removeButton: {
     padding: 8,
+  },
+  removeButtonText: {
+    color: '#ef4444',
+    fontSize: 14,
   },
   addButton: {
     padding: 12,
@@ -411,5 +621,48 @@ const styles = StyleSheet.create({
     color: '#0891b2',
     fontSize: 14,
     fontWeight: '500',
+  },
+  submitButton: {
+    backgroundColor: '#0891b2',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  imageSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  imageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderContainer: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
 });
