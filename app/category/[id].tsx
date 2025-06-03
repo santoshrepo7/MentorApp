@@ -1,17 +1,18 @@
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { categories, getCategoryIcon } from '@/data/categories';
 import { useState } from 'react';
 import BackHeader from '@/components/BackHeader';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useCategories } from '@/providers/CategoriesProvider';
 
 export default function CategoryScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { theme } = useTheme();
-  const category = categories.find(c => c.id === id);
+  const { categories, loading, error } = useCategories();
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-  const CategoryIcon = category ? getCategoryIcon(category.icon) : null;
+
+  const category = categories.find(c => c.id === id);
 
   const handleSubcategoryPress = (subcategoryId: string) => {
     setSelectedSubcategory(subcategoryId);
@@ -21,11 +22,22 @@ export default function CategoryScreen() {
     });
   };
 
-  if (!category) {
+  if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <BackHeader />
-        <Text>Category not found</Text>
+        <Text style={[styles.loadingText, { color: theme.colors.subtitle }]}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error || !category) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <BackHeader />
+        <Text style={[styles.errorText, { color: theme.colors.error }]}>
+          {error || 'Category not found'}
+        </Text>
       </View>
     );
   }
@@ -90,5 +102,16 @@ const styles = StyleSheet.create({
   },
   subcategoryDescription: {
     fontSize: 14,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#ef4444',
   },
 });

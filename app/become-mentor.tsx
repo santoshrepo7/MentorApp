@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image,
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { categories } from '@/data/categories';
+import { useCategories } from '@/providers/CategoriesProvider';
 import { Check, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -33,12 +33,12 @@ interface FormData {
 export default function BecomeMentorScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { categories, loading: categoriesLoading } = useCategories();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-
 
   const [formData, setFormData] = useState<FormData>({
     bio: '',
@@ -77,7 +77,7 @@ export default function BecomeMentorScreen() {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -223,6 +223,14 @@ export default function BecomeMentorScreen() {
     });
   };
 
+  if (categoriesLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: '#f8fafc' }]}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -235,7 +243,6 @@ export default function BecomeMentorScreen() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-
 
       <View style={styles.form}>
         {/* Profile Image Section */}
@@ -251,6 +258,7 @@ export default function BecomeMentorScreen() {
             )}
           </TouchableOpacity>
         </View>
+
         {/* Bio */}
         <View style={styles.field}>
           <Text style={styles.label}>Professional Bio*</Text>
@@ -664,5 +672,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748b',
   },
 });
