@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Search, ChevronRight, Star, Calendar, Clock, UserPlus } from 'lucide-react-native';
-import { categories } from '@/data/categories';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useCategories } from '@/providers/CategoriesProvider';
 
 interface Professional {
   id: string;
@@ -41,8 +41,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const { requireAuth, session } = useAuth();
   const { theme } = useTheme();
+  const { categories, loading: categoriesLoading } = useCategories();
 
-  // Get first 10 categories
+  // Get first 6 categories
   const featuredCategories = categories.slice(0, 6);
 
   useEffect(() => {
@@ -161,6 +162,14 @@ export default function HomeScreen() {
       router.push('/become-mentor');
     }
   };
+
+  if (categoriesLoading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.subtitle }]}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -340,6 +349,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
   },
   topHeader: {
     flexDirection: 'row',
@@ -583,9 +600,6 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
   },
   errorCard: {
     width: 260,
