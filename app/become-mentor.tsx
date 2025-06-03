@@ -37,6 +37,12 @@ interface NewCategoryForm {
   image_url: string;
 }
 
+interface NewSubcategoryForm {
+  name: string;
+  description: string;
+  category_id: string;
+}
+
 export default function BecomeMentorScreen() {
   const router = useRouter();
   const { session } = useAuth();
@@ -47,11 +53,17 @@ export default function BecomeMentorScreen() {
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState<NewCategoryForm>({
     name: '',
     description: '',
     icon: 'Briefcase',
     image_url: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+  });
+  const [newSubcategory, setNewSubcategory] = useState<NewSubcategoryForm>({
+    name: '',
+    description: '',
+    category_id: ''
   });
 
   const [formData, setFormData] = useState<FormData>({
@@ -133,18 +145,10 @@ export default function BecomeMentorScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!profile || !session?.user?.id) return;
+
     try {
-      setLoading(true);
-      setError(null);
-
-      if (!session?.user?.id) {
-        throw new Error('User not authenticated');
-      }
-
-      // Validate required fields
-      if (!formData.bio || !formData.years_of_experience || !formData.hourly_rate) {
-        throw new Error('Please fill in all required fields');
-      }
+      setSaving(true);
 
       let avatarUrl = null;
       if (profileImage) {
@@ -153,7 +157,6 @@ export default function BecomeMentorScreen() {
           throw new Error('Failed to upload profile image');
         }
 
-        // Update profile avatar_url
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ avatar_url: avatarUrl })
@@ -162,7 +165,6 @@ export default function BecomeMentorScreen() {
         if (profileError) throw profileError;
       }
 
-      // Create professional profile
       const { error: insertError } = await supabase
         .from('professionals')
         .insert({
@@ -180,61 +182,8 @@ export default function BecomeMentorScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  };
-
-  const handleArrayInput = (field: keyof FormData, index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item: string, i: number) => (i === index ? value : item)),
-    }));
-  };
-
-  const addArrayField = (field: keyof FormData) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], ''],
-    }));
-  };
-
-  const removeArrayField = (field: keyof FormData, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_: string, i: number) => i !== index),
-    }));
-  };
-
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories(prev => {
-      const isSelected = prev.includes(categoryId);
-      const newCategories = isSelected
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId];
-      
-      setFormData(prev => ({
-        ...prev,
-        categories: newCategories,
-      }));
-      
-      return newCategories;
-    });
-  };
-
-  const toggleSubcategory = (subcategoryId: string) => {
-    setSelectedSubcategories(prev => {
-      const isSelected = prev.includes(subcategoryId);
-      const newSubcategories = isSelected
-        ? prev.filter(id => id !== subcategoryId)
-        : [...prev, subcategoryId];
-      
-      setFormData(prev => ({
-        ...prev,
-        subcategories: newSubcategories,
-      }));
-      
-      return newSubcategories;
-    });
   };
 
   const handleCreateCategory = async () => {
@@ -268,6 +217,38 @@ export default function BecomeMentorScreen() {
     } catch (error) {
       console.error('Error creating category:', error);
       Alert.alert('Error', 'Failed to create category');
+    }
+  };
+
+  const handleCreateSubcategory = async () => {
+    try {
+      if (!newSubcategory.name.trim() || !newSubcategory.description.trim() || !newSubcategory.category_id) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('subcategories')
+        .insert({
+          id: `${newSubcategory.category_id}-${newSubcategory.name.toLowerCase().replace(/\s+/g, '-')}`,
+          name: newSubcategory.name,
+          description: newSubcategory.description,
+          category_id: newSubcategory.category_id
+        });
+
+      if (error) throw error;
+
+      await refreshCategories();
+      setShowSubcategoryModal(false);
+      setNewSubcategory({
+        name: '',
+        description: '',
+        category_id: ''
+      });
+      Alert.alert('Success', 'Subcategory created successfully');
+    } catch (error) {
+      console.error('Error creating subcategory:', error);
+      Alert.alert('Error', 'Failed to create subcategory');
     }
   };
 
@@ -378,7 +359,15 @@ export default function BecomeMentorScreen() {
         {/* Subcategories */}
         {selectedCategories.length > 0 && (
           <View style={styles.field}>
-            <Text style={styles.label}>Specializations*</Text>
+            <View style={styles.categoryHeader}>
+              <Text style={styles.label}>Specializations*</Text>
+              <TouchableOpacity
+                style={styles.addCategoryButton}
+                onPress={() => setShowSubcategoryModal(true)}>
+                <Plus size={20} color="#0891b2" />
+                <Text style={styles.addCategoryText}>Add Specialization</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.categoriesGrid}>
               {categories
                 .filter(cat => selectedCategories.includes(cat.id))
@@ -623,6 +612,78 @@ export default function BecomeMentorScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Add Subcategory Modal */}
+      <Modal
+        visible={showSubcategoryModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSubcategoryModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Specialization</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowSubcategoryModal(false)}>
+                <X size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalForm}>
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Category*</Text>
+                <View style={styles.categoriesGrid}>
+                  {categories.map(category => (
+                    <TouchableOpacity
+                      key={category.id}
+                      style={[
+                        styles.categoryChip,
+                        newSubcategory.category_id === category.id && styles.selectedChip
+                      ]}
+                      onPress={() => setNewSubcategory(prev => ({ ...prev, category_id: category.id }))}>
+                      <Text style={[
+                        styles.chipText,
+                        newSubcategory.category_id === category.id && styles.selectedChipText
+                      ]}>
+                        {category.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Specialization Name*</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newSubcategory.name}
+                  onChangeText={(value) => setNewSubcategory(prev => ({ ...prev, name: value }))}
+                  placeholder="Enter specialization name"
+                />
+              </View>
+
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Description*</Text>
+                <TextInput
+                  style={styles.modalTextArea}
+                  multiline
+                  numberOfLines={4}
+                  value={newSubcategory.description}
+                  onChangeText={(value) => setNewSubcategory(prev => ({ ...prev, description: value }))}
+                  placeholder="Enter specialization description"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={handleCreateSubcategory}>
+                <Text style={styles.createButtonText}>Create Specialization</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -648,7 +709,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e5e5',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#0f172a',
     marginBottom: 8,
