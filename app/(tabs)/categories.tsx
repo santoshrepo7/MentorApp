@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Image } from 'react-native';
 import { Link } from 'expo-router';
 import { categories, Category } from '@/data/categories';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -18,7 +18,7 @@ export default function CategoriesScreen() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Link href={`/category/${item.id}`} asChild>
-            <TouchableOpacity style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
+            <Pressable style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
               <Image
                 source={{ uri: item.image_url }}
                 style={styles.categoryImage}
@@ -41,7 +41,7 @@ export default function CategoriesScreen() {
                   )}
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           </Link>
         )}
         contentContainerStyle={styles.listContainer}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Image } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -16,7 +16,6 @@ export default function SignUp() {
     try {
       setError('');
       await signUp(fullname, email, password);
-
     } catch (err) {
       setError('Error creating account');
     }
@@ -87,16 +86,16 @@ export default function SignUp() {
           />
         </View>
 
-        <TouchableOpacity style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={handleSignUp}>
+        <Pressable style={[styles.button, { backgroundColor: theme.colors.primary }]} onPress={handleSignUp}>
           <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.subtitle }]}>Already have an account? </Text>
           <Link href="/sign-in" asChild>
-            <TouchableOpacity>
+            <Pressable>
               <Text style={[styles.link, { color: theme.colors.primary }]}>Sign In</Text>
-            </TouchableOpacity>
+            </Pressable>
           </Link>
         </View>
       </View>

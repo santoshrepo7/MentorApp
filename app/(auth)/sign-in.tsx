@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -62,7 +62,7 @@ export default function SignIn() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.toggleContainer}>
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.toggleButton,
               isEmailMode && styles.activeToggle,
@@ -71,8 +71,8 @@ export default function SignIn() {
             onPress={() => setIsEmailMode(true)}>
             <Mail size={20} color={isEmailMode ? '#fff' : theme.colors.text} />
             <Text style={[styles.toggleText, { color: isEmailMode ? '#fff' : theme.colors.text }]}>Email</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[
               styles.toggleButton,
               !isEmailMode && styles.activeToggle,
@@ -81,7 +81,7 @@ export default function SignIn() {
             onPress={() => setIsEmailMode(false)}>
             <Phone size={20} color={!isEmailMode ? '#fff' : theme.colors.text} />
             <Text style={[styles.toggleText, { color: !isEmailMode ? '#fff' : theme.colors.text }]}>Phone</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         {isEmailMode ? (
@@ -155,13 +155,13 @@ export default function SignIn() {
           </>
         )}
 
-        <TouchableOpacity
+        <Pressable
           style={[styles.button, { backgroundColor: theme.colors.primary }]}
           onPress={handleSignIn}>
           <Text style={styles.buttonText}>
             {isEmailMode ? 'Sign In' : (otpSent ? 'Verify OTP' : 'Send OTP')}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.divider}>
           <View style={[styles.dividerLine, { backgroundColor: theme.colors.border }]} />
@@ -170,29 +170,29 @@ export default function SignIn() {
         </View>
 
         <View style={styles.socialButtons}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.socialButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={() => handleSocialSignIn('google')}>
             <Google size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[styles.socialButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={() => handleSocialSignIn('linkedin')}>
             <Linkedin size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[styles.socialButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
             onPress={() => handleSocialSignIn('twitter')}>
             <Twitter size={24} color={theme.colors.text} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: theme.colors.subtitle }]}>Don't have an account? </Text>
           <Link href="/sign-up" asChild>
-            <TouchableOpacity>
+            <Pressable>
               <Text style={[styles.link, { color: theme.colors.primary }]}>Sign Up</Text>
-            </TouchableOpacity>
+            </Pressable>
           </Link>
         </View>
       </View>

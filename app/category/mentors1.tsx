@@ -1,11 +1,11 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Image } from 'react-native';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Star } from 'lucide-react-native';
 
 interface Mentor {
-  id: string; // Changed from number to string for UUID
+  id: string;
   full_name: string;
   title: string;
   bio: string;
@@ -75,7 +75,7 @@ export default function MentorsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Link href={`/mentor/${item.id}`} asChild>
-            <TouchableOpacity style={styles.mentorCard}>
+            <Pressable style={styles.mentorCard}>
               <Image
                 source={{ uri: item.avatar_url }}
                 style={styles.mentorAvatar}
@@ -95,7 +95,7 @@ export default function MentorsScreen() {
                   ))}
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           </Link>
         )}
         contentContainerStyle={styles.listContainer}

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -52,7 +52,7 @@ export default function SearchResults() {
         data={mentors}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <Pressable
             style={styles.mentorCard}
             onPress={() => router.push(`/mentor/${item.id}`)}>
             <Image
@@ -77,7 +77,7 @@ export default function SearchResults() {
                 ))}
               </View>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         )}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={

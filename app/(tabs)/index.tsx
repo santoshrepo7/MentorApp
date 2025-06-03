@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Search, ChevronRight, Star, Calendar, Clock, UserPlus } from 'lucide-react-native';
 import { categories } from '@/data/categories';
@@ -170,18 +170,18 @@ export default function HomeScreen() {
         <Text style={styles.headerTitle1}>Mentor</Text>
         <View style={{ flex: 2 }} />
         {!isMentor && (
-          <TouchableOpacity
+          <Pressable
             style={styles.becomeMentorButton}
             onPress={handleBecomeMentor}>
             <UserPlus size={20} color="#fff" />
             <Text style={styles.becomeMentorText}>Become a Mentor</Text>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
       {/* Next Appointment Card */}
       {nextAppointment && (
-        <TouchableOpacity 
+        <Pressable 
           style={[styles.appointmentCard, { backgroundColor: theme.colors.card }]}
           onPress={() => router.push('/appointments')}>
           <View style={styles.appointmentHeader}>
@@ -207,7 +207,7 @@ export default function HomeScreen() {
               with {nextAppointment.mentor.profiles.full_name}
             </Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       )}
 
       {/* Hero Section */}
@@ -237,12 +237,13 @@ export default function HomeScreen() {
           />
         </View>
       </View>
+
       {/* Categories Section */}
       <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Popular Categories</Text>
         <View style={styles.categoriesGrid}>
           {featuredCategories.map((category) => (
-            <TouchableOpacity
+            <Pressable
               key={category.id}
               style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
               onPress={() => router.push(`/category/${category.id}`)}>
@@ -259,13 +260,13 @@ export default function HomeScreen() {
                   <ChevronRight size={16} color={theme.colors.subtitle} />
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
         <Link href="/categories" asChild>
-          <TouchableOpacity style={[styles.viewAllButton, { backgroundColor: theme.colors.background }]}>
+          <Pressable style={[styles.viewAllButton, { backgroundColor: theme.colors.background }]}>
             <Text style={[styles.viewAllButtonText, { color: theme.colors.primary }]}>View All Categories</Text>
-          </TouchableOpacity>
+          </Pressable>
         </Link>
       </View>
 
@@ -274,9 +275,9 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Top Mentors</Text>
           <Link href="/category/mentors1" asChild>
-            <TouchableOpacity>
+            <Pressable>
               <Text style={[styles.seeAllLink, { color: theme.colors.primary }]}>See All</Text>
-            </TouchableOpacity>
+            </Pressable>
           </Link>
         </View>
         <ScrollView
@@ -286,11 +287,11 @@ export default function HomeScreen() {
           {error ? (
             <View style={styles.errorCard}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity
+              <Pressable
                 style={styles.retryButton}
                 onPress={fetchMentors}>
                 <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : (
             <>
@@ -299,7 +300,7 @@ export default function HomeScreen() {
                   key={mentor.id}
                   href={`/mentor/${mentor.id}`}
                   asChild>
-                  <TouchableOpacity style={[styles.mentorCard, { backgroundColor: theme.colors.card }]}>
+                  <Pressable style={[styles.mentorCard, { backgroundColor: theme.colors.card }]}>
                     <Image
                       source={{ uri: mentor.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }}
                       style={styles.mentorAvatar}
@@ -320,7 +321,7 @@ export default function HomeScreen() {
                         </View>
                       ))}
                     </View>
-                  </TouchableOpacity>
+                  </Pressable>
                 </Link>
               ))}
               {loading && (
@@ -332,7 +333,6 @@ export default function HomeScreen() {
           )}
         </ScrollView>
       </View>
-
     </ScrollView>
   );
 }
