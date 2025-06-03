@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, Platform, Modal, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useCategories } from '@/providers/CategoriesProvider';
-import { Check, Camera } from 'lucide-react-native';
+import { Check, Camera, Plus, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface FormData {
@@ -30,15 +30,29 @@ interface FormData {
   work_experience: string[];
 }
 
+interface NewCategoryForm {
+  name: string;
+  description: string;
+  icon: string;
+  image_url: string;
+}
+
 export default function BecomeMentorScreen() {
   const router = useRouter();
   const { session } = useAuth();
-  const { categories, loading: categoriesLoading } = useCategories();
+  const { categories, loading: categoriesLoading, refreshCategories } = useCategories();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState<NewCategoryForm>({
+    name: '',
+    description: '',
+    icon: 'Briefcase',
+    image_url: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+  });
 
   const [formData, setFormData] = useState<FormData>({
     bio: '',
@@ -223,6 +237,40 @@ export default function BecomeMentorScreen() {
     });
   };
 
+  const handleCreateCategory = async () => {
+    try {
+      if (!newCategory.name.trim() || !newCategory.description.trim()) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          id: newCategory.name.toLowerCase().replace(/\s+/g, '-'),
+          name: newCategory.name,
+          description: newCategory.description,
+          icon: newCategory.icon,
+          image_url: newCategory.image_url
+        });
+
+      if (error) throw error;
+
+      await refreshCategories();
+      setShowCategoryModal(false);
+      setNewCategory({
+        name: '',
+        description: '',
+        icon: 'Briefcase',
+        image_url: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+      });
+      Alert.alert('Success', 'Category created successfully');
+    } catch (error) {
+      console.error('Error creating category:', error);
+      Alert.alert('Error', 'Failed to create category');
+    }
+  };
+
   if (categoriesLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: '#f8fafc' }]}>
@@ -298,7 +346,15 @@ export default function BecomeMentorScreen() {
 
         {/* Categories */}
         <View style={styles.field}>
-          <Text style={styles.label}>Categories*</Text>
+          <View style={styles.categoryHeader}>
+            <Text style={styles.label}>Categories*</Text>
+            <TouchableOpacity
+              style={styles.addCategoryButton}
+              onPress={() => setShowCategoryModal(true)}>
+              <Plus size={20} color="#0891b2" />
+              <Text style={styles.addCategoryText}>Add Category</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.categoriesGrid}>
             {categories.map(category => (
               <TouchableOpacity
@@ -348,6 +404,7 @@ export default function BecomeMentorScreen() {
           </View>
         )}
 
+        {/* Rest of the form fields... */}
         {/* Professional Details */}
         <View style={styles.field}>
           <Text style={styles.label}>Current Position*</Text>
@@ -505,6 +562,67 @@ export default function BecomeMentorScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Add Category Modal */}
+      <Modal
+        visible={showCategoryModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCategoryModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Category</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowCategoryModal(false)}>
+                <X size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalForm}>
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Category Name*</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newCategory.name}
+                  onChangeText={(value) => setNewCategory(prev => ({ ...prev, name: value }))}
+                  placeholder="Enter category name"
+                />
+              </View>
+
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Description*</Text>
+                <TextInput
+                  style={styles.modalTextArea}
+                  multiline
+                  numberOfLines={4}
+                  value={newCategory.description}
+                  onChangeText={(value) => setNewCategory(prev => ({ ...prev, description: value }))}
+                  placeholder="Enter category description"
+                />
+              </View>
+
+              <View style={styles.modalField}>
+                <Text style={styles.modalLabel}>Image URL</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newCategory.image_url}
+                  onChangeText={(value) => setNewCategory(prev => ({ ...prev, image_url: value }))}
+                  placeholder="Enter image URL"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.createButton}
+                onPress={handleCreateCategory}>
+                <Text style={styles.createButtonText}>Create Category</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -513,6 +631,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748b',
   },
   header: {
     padding: 20,
@@ -547,6 +674,23 @@ const styles = StyleSheet.create({
   },
   field: {
     marginBottom: 20,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    padding: 8,
+  },
+  addCategoryText: {
+    color: '#0891b2',
+    fontSize: 14,
+    fontWeight: '500',
   },
   label: {
     fontSize: 14,
@@ -673,13 +817,71 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  loadingContainer: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
   },
-  loadingText: {
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalForm: {
+    gap: 16,
+  },
+  modalField: {
+    gap: 8,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#0f172a',
+  },
+  modalInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    color: '#64748b',
+  },
+  modalTextArea: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  createButton: {
+    backgroundColor: '#0891b2',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
