@@ -37,7 +37,9 @@ export default function CategoriesScreen() {
           <Link href={`/category/${item.id}`} asChild>
             <Pressable style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}>
               <Image
-                source={{ uri: item.image_url }}
+                source={{ 
+                  uri: item.image_url || 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+                }}
                 style={styles.categoryImage}
               />
               <View style={styles.categoryContent}>

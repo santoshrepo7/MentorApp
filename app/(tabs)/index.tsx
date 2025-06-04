@@ -409,7 +409,9 @@ export default function HomeScreen() {
               style={[styles.categoryCard, { backgroundColor: theme.colors.card }]}
               onPress={() => router.push(`/category/${category.id}`)}>
               <Image
-                source={{ uri: category.image_url }}
+                source={{ 
+                  uri: category.image_url || 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg'
+                }}
                 style={styles.categoryImage}
               />
               <View style={[styles.categoryContent, { backgroundColor: theme.colors.card }]}>
@@ -463,7 +465,9 @@ export default function HomeScreen() {
                   asChild>
                   <Pressable style={[styles.mentorCard, { backgroundColor: theme.colors.card }]}>
                     <Image
-                      source={{ uri: mentor.avatar_url || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }}
+                      source={{ 
+                        uri: mentor.avatar_url || 'https://images.pexels.com/photos/2381069/pexels-photo-2381069.jpeg'
+                      }}
                       style={styles.mentorAvatar}
                     />
                     <Text style={[styles.mentorName, { color: theme.colors.text }]}>{mentor.full_name}</Text>
