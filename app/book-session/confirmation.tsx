@@ -43,22 +43,38 @@ export default function BookingConfirmationScreen() {
     try {
       setLoading(true);
 
-      // Simulate payment processing delay
-      //await new Promise(resolve => setTimeout(resolve, 10));
+      // Create payment intent
+      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-payment-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          amount: Number(rate) * 100, // Convert to cents
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent');
+      }
+
+      const { clientSecret } = await response.json();
 
       // Create appointment
       const { data: appointment, error: appointmentError } = await supabase
         .from('appointments')
         .insert({
           mentor_id: mentorId,
-          user_id: session.user.id, // Add the user_id
+          user_id: session.user.id,
           date: date,
           time: time,
           type: type,
           problem_description: description,
-          payment_status: 'completed',
+          payment_status: 'completed', // This should be 'pending' in production
           payment_amount: rate,
           payment_method: selectedPaymentMethod,
+          payment_intent_id: clientSecret,
           status: 'pending'
         })
         .select()
