@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, CircleUser as UserCircle, BookOpen, Calendar } from 'lucide-react-native';
+import { Home, CircleUser as UserCircle, BookOpen, Calendar, Bot } from 'lucide-react-native';
 import NotificationBadge from '@/components/NotificationBadge';
 import { useTheme } from '@/providers/ThemeProvider';
 
@@ -44,6 +44,13 @@ export default function TabLayout() {
         options={{
           title: 'Categories',
           tabBarIcon: ({ size, color }) => <BookOpen size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai-mentor"
+        options={{
+          title: 'AI Mentor',
+          tabBarIcon: ({ size, color }) => <Bot size={size} color={color} />,
         }}
       />
       <Tabs.Screen
