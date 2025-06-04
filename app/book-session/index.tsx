@@ -11,6 +11,21 @@ const SESSION_TYPES = [
   { id: 'call', icon: Phone, label: 'Phone Call' }
 ];
 
+// Default availability for new mentors
+const DEFAULT_TIME_SLOTS = [
+  '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'
+];
+
+const DEFAULT_AVAILABILITY = {
+  0: DEFAULT_TIME_SLOTS, // Sunday
+  1: DEFAULT_TIME_SLOTS, // Monday
+  2: DEFAULT_TIME_SLOTS, // Tuesday
+  3: DEFAULT_TIME_SLOTS, // Wednesday
+  4: DEFAULT_TIME_SLOTS, // Thursday
+  5: DEFAULT_TIME_SLOTS, // Friday
+  6: DEFAULT_TIME_SLOTS, // Saturday
+};
+
 interface TimeSlot {
   start_time: string;
   end_time: string;
@@ -28,6 +43,7 @@ export default function BookSessionScreen() {
   const [problemDescription, setProblemDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<AvailabilityMap>({});
+  const [hasCustomAvailability, setHasCustomAvailability] = useState(false);
   const router = useRouter();
   const { session } = useAuth();
 
@@ -53,19 +69,34 @@ export default function BookSessionScreen() {
       });
 
       const slots: AvailabilityMap = {};
-      nextSevenDays.forEach(date => {
-        const dayOfWeek = date.getDay();
-        const daySlots = availabilityData
-          .filter(slot => slot.day_of_week === dayOfWeek)
-          .map(slot => ({
-            start_time: slot.start_time,
-            end_time: slot.end_time
-          }));
 
-        if (daySlots.length > 0) {
-          slots[date.toISOString().split('T')[0]] = daySlots;
-        }
-      });
+      // Check if mentor has custom availability
+      if (availabilityData && availabilityData.length > 0) {
+        setHasCustomAvailability(true);
+        nextSevenDays.forEach(date => {
+          const dayOfWeek = date.getDay();
+          const daySlots = availabilityData
+            .filter(slot => slot.day_of_week === dayOfWeek)
+            .map(slot => ({
+              start_time: slot.start_time,
+              end_time: slot.end_time
+            }));
+
+          if (daySlots.length > 0) {
+            slots[date.toISOString().split('T')[0]] = daySlots;
+          }
+        });
+      } else {
+        // Use default availability
+        setHasCustomAvailability(false);
+        nextSevenDays.forEach(date => {
+          const dayOfWeek = date.getDay();
+          slots[date.toISOString().split('T')[0]] = DEFAULT_TIME_SLOTS.map(time => ({
+            start_time: time,
+            end_time: time // For default slots, end time is same as start time + 1 hour
+          }));
+        });
+      }
 
       setAvailableSlots(slots);
     } catch (error) {
@@ -80,6 +111,12 @@ export default function BookSessionScreen() {
     const dateStr = date.toISOString().split('T')[0];
     const slots = availableSlots[dateStr] || [];
     
+    if (!hasCustomAvailability) {
+      // For default availability, return the predefined time slots
+      return DEFAULT_TIME_SLOTS;
+    }
+    
+    // For custom availability, calculate available slots
     return slots.reduce((times: string[], slot) => {
       const start = new Date(`2000-01-01T${slot.start_time}`);
       const end = new Date(`2000-01-01T${slot.end_time}`);
@@ -204,6 +241,11 @@ export default function BookSessionScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Time</Text>
+        {!hasCustomAvailability && (
+          <Text style={styles.defaultAvailabilityNote}>
+            This mentor is using default availability. They may update their schedule later.
+          </Text>
+        )}
         <View style={styles.timeContainer}>
           {timeSlots.map((time) => (
             <TouchableOpacity
@@ -413,6 +455,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
     padding: 12,
+  },
+  defaultAvailabilityNote: {
+    fontSize: 14,
+    color: '#64748b',
+    fontStyle: 'italic',
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 6,
   },
   summaryContainer: {
     backgroundColor: '#f8fafc',
