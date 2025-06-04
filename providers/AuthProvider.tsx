@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inOnboardingGroup = segments[0] === '(onboarding)';
     const isProtectedRoute = PROTECTED_ROUTES.some(route => 
       segments.some(segment => segment.includes(route))
     );
