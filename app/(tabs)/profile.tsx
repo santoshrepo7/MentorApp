@@ -301,6 +301,19 @@ export default function ProfileScreen() {
 
             <TouchableOpacity 
               style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
+              onPress={() => router.push('/account/availability')}>
+              <View style={[styles.settingIcon, { backgroundColor: theme.colors.background }]}>
+                <Languages size={20} color={theme.colors.subtitle} />
+              </View>
+              <View style={styles.settingContent}>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>Availability Slot</Text>
+                <Text style={[styles.settingDescription, { color: theme.colors.subtitle }]}>Update your preferred date and timeproblem_description</Text>
+              </View>
+              <ChevronRight size={20} color={theme.colors.subtitle} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
               onPress={() => router.push('/account/languages')}>
               <View style={[styles.settingIcon, { backgroundColor: theme.colors.background }]}>
                 <Languages size={20} color={theme.colors.subtitle} />

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -11,9 +11,14 @@ const SESSION_TYPES = [
   { id: 'call', icon: Phone, label: 'Phone Call' }
 ];
 
-const TIME_SLOTS = [
-  '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'
-];
+interface TimeSlot {
+  start_time: string;
+  end_time: string;
+}
+
+interface AvailabilityMap {
+  [date: string]: TimeSlot[];
+}
 
 export default function BookSessionScreen() {
   const { mentorId, rate } = useLocalSearchParams();
@@ -21,9 +26,72 @@ export default function BookSessionScreen() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string>('video');
   const [problemDescription, setProblemDescription] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState<AvailabilityMap>({});
   const router = useRouter();
   const { session } = useAuth();
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [mentorId]);
+
+  const fetchAvailability = async () => {
+    try {
+      const { data: availabilityData, error } = await supabase
+        .from('mentor_availability')
+        .select('*')
+        .eq('mentor_id', mentorId)
+        .eq('is_available', true);
+
+      if (error) throw error;
+
+      // Process availability data
+      const nextSevenDays = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+        return date;
+      });
+
+      const slots: AvailabilityMap = {};
+      nextSevenDays.forEach(date => {
+        const dayOfWeek = date.getDay();
+        const daySlots = availabilityData
+          .filter(slot => slot.day_of_week === dayOfWeek)
+          .map(slot => ({
+            start_time: slot.start_time,
+            end_time: slot.end_time
+          }));
+
+        if (daySlots.length > 0) {
+          slots[date.toISOString().split('T')[0]] = daySlots;
+        }
+      });
+
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+      Alert.alert('Error', 'Failed to load mentor\'s availability');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAvailableTimeSlots = (date: Date): string[] => {
+    const dateStr = date.toISOString().split('T')[0];
+    const slots = availableSlots[dateStr] || [];
+    
+    return slots.reduce((times: string[], slot) => {
+      const start = new Date(`2000-01-01T${slot.start_time}`);
+      const end = new Date(`2000-01-01T${slot.end_time}`);
+      
+      while (start < end) {
+        times.push(start.toTimeString().slice(0, 5));
+        start.setHours(start.getHours() + 1);
+      }
+      
+      return times;
+    }, []);
+  };
 
   const handleBooking = async () => {
     if (!selectedDate || !selectedTime || !session?.user || !problemDescription.trim()) {
@@ -42,6 +110,9 @@ export default function BookSessionScreen() {
       }
     });
   };
+
+  const availableDates = Object.keys(availableSlots).map(date => new Date(date));
+  const timeSlots = selectedDate ? getAvailableTimeSlots(selectedDate) : [];
 
   return (
     <ScrollView style={styles.container}>
@@ -64,6 +135,7 @@ export default function BookSessionScreen() {
           />
           {!problemDescription.trim() && (
             <View style={styles.warningContainer}>
+              <AlertCircle size={16} color="#92400e" />
               <Text style={styles.warningText}>Please provide a brief description of your needs</Text>
             </View>
           )}
@@ -100,10 +172,8 @@ export default function BookSessionScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Date</Text>
         <View style={styles.dateContainer}>
-          {[...Array(7)].map((_, index) => {
-            const date = new Date();
-            date.setDate(date.getDate() + index);
-            const isSelected = selectedDate.toDateString() === date.toDateString();
+          {availableDates.map((date, index) => {
+            const isSelected = selectedDate?.toDateString() === date.toDateString();
 
             return (
               <TouchableOpacity
@@ -136,7 +206,7 @@ export default function BookSessionScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Time</Text>
         <View style={styles.timeContainer}>
-          {TIME_SLOTS.map((time) => (
+          {timeSlots.map((time) => (
             <TouchableOpacity
               key={time}
               style={[
@@ -157,6 +227,11 @@ export default function BookSessionScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+          {timeSlots.length === 0 && (
+            <Text style={styles.noSlotsText}>
+              No available time slots for this date
+            </Text>
+          )}
         </View>
       </View>
 
@@ -187,7 +262,7 @@ export default function BookSessionScreen() {
           onPress={handleBooking}
           disabled={!selectedDate || !selectedTime || !problemDescription.trim() || loading}>
           <Text style={styles.bookButtonText}>
-            {loading ? 'Booking...' : 'Continue to Payment'}
+            {loading ? 'Loading...' : 'Continue to Payment'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -331,6 +406,14 @@ const styles = StyleSheet.create({
   },
   selectedTimeText: {
     color: '#0891b2',
+  },
+  noSlotsText: {
+    fontSize: 14,
+    color: '#64748b',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    width: '100%',
+    padding: 12,
   },
   summaryContainer: {
     backgroundColor: '#f8fafc',

@@ -55,6 +55,13 @@ export default function AccountLayout() {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="availability"
+        options={{
+          title: 'Availability Settings',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack>
   );
 }
