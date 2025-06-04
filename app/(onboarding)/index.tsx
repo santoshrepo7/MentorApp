@@ -37,6 +37,53 @@ const slides = [
   }
 ];
 
+// Separate functional component for rendering slides
+function SlideItem({ item, index, screenWidth, translateX }) {
+  const inputRange = [
+    (index - 1) * screenWidth,
+    index * screenWidth,
+    (index + 1) * screenWidth
+  ];
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      translateX.value,
+      inputRange,
+      [0.8, 1, 0.8],
+      Extrapolate.CLAMP
+    );
+
+    const opacity = interpolate(
+      translateX.value,
+      inputRange,
+      [0.4, 1, 0.4],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [{ scale }],
+      opacity
+    };
+  });
+
+  return (
+    <View style={[styles.slide, { width: screenWidth }]}>
+      <Animated.View style={[styles.slideContent, animatedStyle]}>
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.image }} style={styles.image} />
+          <View style={styles.overlay} />
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.quote}>{item.quote}</Text>
+          <Text style={styles.author}>{item.author}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </View>
+      </Animated.View>
+    </View>
+  );
+}
+
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
@@ -68,58 +115,21 @@ export default function OnboardingScreen() {
     router.replace('/sign-in');
   };
 
-  const renderSlide = ({ item, index }: { item: typeof slides[0], index: number }) => {
-    const inputRange = [
-      (index - 1) * screenWidth,
-      index * screenWidth,
-      (index + 1) * screenWidth
-    ];
-
-    const animatedStyle = useAnimatedStyle(() => {
-      const scale = interpolate(
-        translateX.value,
-        inputRange,
-        [0.8, 1, 0.8],
-        Extrapolate.CLAMP
-      );
-
-      const opacity = interpolate(
-        translateX.value,
-        inputRange,
-        [0.4, 1, 0.4],
-        Extrapolate.CLAMP
-      );
-
-      return {
-        transform: [{ scale }],
-        opacity
-      };
-    });
-
-    return (
-      <View style={[styles.slide, { width: screenWidth }]}>
-        <Animated.View style={[styles.slideContent, animatedStyle]}>
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.overlay} />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.quote}>{item.quote}</Text>
-            <Text style={styles.author}>{item.author}</Text>
-            <Text style={styles.description}>{item.description}</Text>
-          </View>
-        </Animated.View>
-      </View>
-    );
-  };
+  const renderItem = ({ item, index }) => (
+    <SlideItem
+      item={item}
+      index={index}
+      screenWidth={screenWidth}
+      translateX={translateX}
+    />
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={slides}
-        renderItem={renderSlide}
+        renderItem={renderItem}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}

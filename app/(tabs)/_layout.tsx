@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Chrome as Home, CircleUser as UserCircle, BookOpen, Calendar } from 'lucide-react-native';
+import { Home, CircleUser as UserCircle, BookOpen, Calendar } from 'lucide-react-native';
 import NotificationBadge from '@/components/NotificationBadge';
 import { useTheme } from '@/providers/ThemeProvider';
 
