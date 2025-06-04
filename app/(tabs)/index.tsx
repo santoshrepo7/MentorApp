@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput, TouchableOpacity } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Search, ChevronRight, Star, Calendar, Clock, UserPlus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useCategories } from '@/providers/CategoriesProvider';
+
+interface SearchResult {
+  type: 'category' | 'subcategory' | 'mentor';
+  id: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  parent_category?: string;
+}
 
 interface Professional {
   id: string;
@@ -33,6 +42,8 @@ interface Appointment {
 
 export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [mentors, setMentors] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +54,6 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const { categories, loading: categoriesLoading } = useCategories();
 
-  // Get first 6 categories
   const featuredCategories = categories.slice(0, 6);
 
   useEffect(() => {
@@ -147,12 +157,111 @@ export default function HomeScreen() {
     }
   }
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      router.push({
-        pathname: '/search-results',
-        params: { query: searchQuery }
-      });
+  const handleSearch = async (text: string) => {
+    setSearchQuery(text);
+    
+    if (!text.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setShowSearchResults(true);
+    const searchTerm = text.toLowerCase();
+
+    try {
+      // Search categories
+      const { data: categoryData } = await supabase
+        .from('categories')
+        .select('id, name, description, image_url')
+        .ilike('name', `%${searchTerm}%`)
+        .or(`description.ilike.%${searchTerm}%`);
+
+      // Search subcategories
+      const { data: subcategoryData } = await supabase
+        .from('subcategories')
+        .select(`
+          id, 
+          name, 
+          description,
+          categories!inner (
+            name
+          )
+        `)
+        .ilike('name', `%${searchTerm}%`)
+        .or(`description.ilike.%${searchTerm}%`);
+
+      // Search mentors
+      const { data: mentorData } = await supabase
+        .from('professionals')
+        .select(`
+          id,
+          bio,
+          expertise,
+          position,
+          company,
+          profiles!inner (
+            full_name,
+            avatar_url
+          )
+        `)
+        .or(`bio.ilike.%${searchTerm}%,position.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%`)
+        .textSearch('search_text', searchTerm);
+
+      const results: SearchResult[] = [
+        ...(categoryData?.map(cat => ({
+          type: 'category' as const,
+          id: cat.id,
+          name: cat.name,
+          description: cat.description,
+          image_url: cat.image_url
+        })) || []),
+        ...(subcategoryData?.map(sub => ({
+          type: 'subcategory' as const,
+          id: sub.id,
+          name: sub.name,
+          description: sub.description,
+          parent_category: sub.categories.name
+        })) || []),
+        ...(mentorData?.map(mentor => ({
+          type: 'mentor' as const,
+          id: mentor.id,
+          name: mentor.profiles.full_name,
+          description: mentor.bio,
+          image_url: mentor.profiles.avatar_url
+        })) || [])
+      ];
+
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    }
+  };
+
+  const handleSearchResultPress = (result: SearchResult) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    
+    switch (result.type) {
+      case 'category':
+        router.push(`/category/${result.id}`);
+        break;
+      case 'subcategory':
+        // Find parent category
+        const category = categories.find(cat => 
+          cat.subcategories.some(sub => sub.id === result.id)
+        );
+        if (category) {
+          router.push({
+            pathname: '/category/mentors',
+            params: { categoryId: category.id, subcategoryId: result.id }
+          });
+        }
+        break;
+      case 'mentor':
+        router.push(`/mentor/${result.id}`);
+        break;
     }
   };
 
@@ -241,10 +350,53 @@ export default function HomeScreen() {
             placeholder="Search mentors, categories, or skills..."
             placeholderTextColor={theme.colors.placeholder}
             value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
+            onChangeText={handleSearch}
           />
         </View>
+
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchResults.length > 0 && (
+          <View style={[styles.searchResults, { backgroundColor: theme.colors.card }]}>
+            {searchResults.map((result, index) => (
+              <TouchableOpacity
+                key={`${result.type}-${result.id}`}
+                style={[
+                  styles.searchResultItem,
+                  index < searchResults.length - 1 && { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }
+                ]}
+                onPress={() => handleSearchResultPress(result)}>
+                {result.type === 'mentor' && result.image_url && (
+                  <Image
+                    source={{ uri: result.image_url }}
+                    style={styles.resultImage}
+                  />
+                )}
+                <View style={styles.resultContent}>
+                  <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
+                    {result.name}
+                  </Text>
+                  {result.type === 'subcategory' && (
+                    <Text style={[styles.resultSubtitle, { color: theme.colors.subtitle }]}>
+                      in {result.parent_category}
+                    </Text>
+                  )}
+                  {result.description && (
+                    <Text 
+                      style={[styles.resultDescription, { color: theme.colors.subtitle }]}
+                      numberOfLines={1}>
+                      {result.description}
+                    </Text>
+                  )}
+                </View>
+                <View style={[styles.resultType, { backgroundColor: theme.colors.primary + '20' }]}>
+                  <Text style={[styles.resultTypeText, { color: theme.colors.primary }]}>
+                    {result.type}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Categories Section */}
@@ -477,6 +629,55 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     fontSize: 16,
+  },
+  searchResults: {
+    position: 'absolute',
+    top: '100%',
+    left: 16,
+    right: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    maxHeight: 300,
+    zIndex: 1000,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  resultImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  resultSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  resultDescription: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  resultType: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  resultTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   section: {
     padding: 16,
