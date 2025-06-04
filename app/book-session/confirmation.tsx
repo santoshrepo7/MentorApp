@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, CreditCard, QrCode, Wallet } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, CreditCard, QrCode, Wallet, X } from 'lucide-react-native';
 
 const SESSION_TYPE_ICONS = {
   video: Video,
@@ -33,6 +33,21 @@ export default function BookingConfirmationScreen() {
   const { session } = useAuth();
   const TypeIcon = SESSION_TYPE_ICONS[type as keyof typeof SESSION_TYPE_ICONS] || Video;
   const sessionDate = new Date(date as string);
+
+  const handleCancel = () => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        { 
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => router.back()
+        }
+      ]
+    );
+  };
 
   const handlePayment = async () => {
     if (!session?.user?.id) {
@@ -122,6 +137,11 @@ export default function BookingConfirmationScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Confirm Booking</Text>
         <Text style={styles.subtitle}>Review and complete your booking</Text>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={handleCancel}>
+          <X size={24} color="#64748b" />
+        </TouchableOpacity>
       </View>
 
       {/* Session Details */}
@@ -232,6 +252,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#64748b',
+  },
+  cancelButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
   },
   section: {
     padding: 20,

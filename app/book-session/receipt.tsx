@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Clock, Video, MessageSquare, Phone, Download, Share as ShareIcon } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, Download, Share as ShareIcon, X } from 'lucide-react-native';
 
 const SESSION_TYPE_ICONS = {
   video: Video,
@@ -12,6 +12,7 @@ export default function PaymentReceiptScreen() {
   const { 
     appointmentId,
     mentorName,
+    mentorId,
     date, 
     time, 
     type = 'video',
@@ -47,11 +48,20 @@ export default function PaymentReceiptScreen() {
     router.replace('/appointments');
   };
 
+  const handleCancel = () => {
+    router.replace(`/mentor/${mentorId}`);
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Payment Successful</Text>
         <Text style={styles.subtitle}>Your session has been booked</Text>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={handleCancel}>
+          <X size={24} color="#64748b" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.receiptCard}>
@@ -307,5 +317,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cancelButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
   },
 });

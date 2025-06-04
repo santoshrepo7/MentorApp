@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as AlertCircle } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as AlertCircle, X } from 'lucide-react-native';
 
 const SESSION_TYPES = [
   { id: 'video', icon: Video, label: 'Video Call' },
@@ -11,7 +11,6 @@ const SESSION_TYPES = [
   { id: 'call', icon: Phone, label: 'Phone Call' }
 ];
 
-// Default availability for new mentors
 const DEFAULT_TIME_SLOTS = [
   '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'
 ];
@@ -61,7 +60,6 @@ export default function BookSessionScreen() {
 
       if (error) throw error;
 
-      // Process availability data
       const nextSevenDays = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() + i);
@@ -70,7 +68,6 @@ export default function BookSessionScreen() {
 
       const slots: AvailabilityMap = {};
 
-      // Check if mentor has custom availability
       if (availabilityData && availabilityData.length > 0) {
         setHasCustomAvailability(true);
         nextSevenDays.forEach(date => {
@@ -87,13 +84,12 @@ export default function BookSessionScreen() {
           }
         });
       } else {
-        // Use default availability
         setHasCustomAvailability(false);
         nextSevenDays.forEach(date => {
           const dayOfWeek = date.getDay();
           slots[date.toISOString().split('T')[0]] = DEFAULT_TIME_SLOTS.map(time => ({
             start_time: time,
-            end_time: time // For default slots, end time is same as start time + 1 hour
+            end_time: time
           }));
         });
       }
@@ -112,11 +108,9 @@ export default function BookSessionScreen() {
     const slots = availableSlots[dateStr] || [];
     
     if (!hasCustomAvailability) {
-      // For default availability, return the predefined time slots
       return DEFAULT_TIME_SLOTS;
     }
     
-    // For custom availability, calculate available slots
     return slots.reduce((times: string[], slot) => {
       const start = new Date(`2000-01-01T${slot.start_time}`);
       const end = new Date(`2000-01-01T${slot.end_time}`);
@@ -148,6 +142,21 @@ export default function BookSessionScreen() {
     });
   };
 
+  const handleCancel = () => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        { 
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: () => router.back()
+        }
+      ]
+    );
+  };
+
   const availableDates = Object.keys(availableSlots).map(date => new Date(date));
   const timeSlots = selectedDate ? getAvailableTimeSlots(selectedDate) : [];
 
@@ -156,6 +165,11 @@ export default function BookSessionScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Book a Session</Text>
         <Text style={styles.subtitle}>Select your preferred date and time</Text>
+        <TouchableOpacity
+          style={styles.cancelButton}
+          onPress={handleCancel}>
+          <X size={24} color="#64748b" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -507,5 +521,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cancelButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
   },
 });
