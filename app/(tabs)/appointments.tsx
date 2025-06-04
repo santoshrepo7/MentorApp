@@ -106,6 +106,7 @@ export default function AppointmentsScreen() {
   const handleStatusUpdate = async (appointmentId: string, newStatus: string) => {
     try {
       setUpdating(true);
+
       const { error } = await supabase
         .from('appointments')
         .update({ 
@@ -267,18 +268,17 @@ export default function AppointmentsScreen() {
               </TouchableOpacity>
             </>
           )}
-          {!isMentor && item.status !== 'cancelled' && (
+          {!isMentor && item.status === 'pending' && (
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-              onPress={() => handleEdit(item)}>
-              <Edit size={20} color="#fff" />
-              <Text style={styles.actionButtonText}>Edit</Text>
+              style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+              onPress={() => cancelAppointment(item.id)}>
+              <Text style={styles.actionButtonText}>Cancel</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => handleChat(item)}>
-            <Edit size={20} color="#fff" />
+            <MessageSquare size={20} color="#fff" />
             <Text style={styles.actionButtonText}>Chat</Text>
           </TouchableOpacity>
         </View>
