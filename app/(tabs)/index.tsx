@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, TextInput, TouchableOpacity } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { Search, ChevronRight, Star, Calendar, Clock, UserPlus } from 'lucide-react-native';
+import { Search, ChevronRight, Star, Calendar, Clock, Video, MessageSquare, Phone, UserPlus } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -47,7 +47,7 @@ export default function HomeScreen() {
   const [mentors, setMentors] = useState<Professional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nextAppointment, setNextAppointment] = useState<Appointment | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [isMentor, setIsMentor] = useState(false);
   const router = useRouter();
   const { requireAuth, session } = useAuth();
@@ -59,7 +59,7 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchMentors();
     if (session?.user) {
-      fetchNextAppointment();
+      fetchUpcomingAppointments();
       checkMentorStatus();
     }
   }, [session]);
@@ -79,7 +79,7 @@ export default function HomeScreen() {
     }
   }
 
-  async function fetchNextAppointment() {
+  async function fetchUpcomingAppointments() {
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -100,12 +100,12 @@ export default function HomeScreen() {
         .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('time', { ascending: true })
-        .limit(1);
+        .limit(3);
 
       if (error) throw error;
-      setNextAppointment(data && data.length > 0 ? data[0] : null);
+      setUpcomingAppointments(data || []);
     } catch (error) {
-      console.error('Error fetching next appointment:', error);
+      console.error('Error fetching upcoming appointments:', error);
     }
   }
 
@@ -272,6 +272,19 @@ export default function HomeScreen() {
     }
   };
 
+  const getSessionIcon = (type: string) => {
+    switch (type) {
+      case 'video':
+        return Video;
+      case 'chat':
+        return MessageSquare;
+      case 'call':
+        return Phone;
+      default:
+        return Video;
+    }
+  };
+
   if (categoriesLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
@@ -297,35 +310,49 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Next Appointment Card */}
-      {nextAppointment && (
-        <Pressable 
-          style={[styles.appointmentCard, { backgroundColor: theme.colors.card }]}
-          onPress={() => router.push('/appointments')}>
-          <View style={styles.appointmentHeader}>
-            <Text style={[styles.appointmentTitle, { color: theme.colors.text }]}>Next Session</Text>
-            <Text style={[styles.viewAllText, { color: theme.colors.primary }]}>View All</Text>
+      {/* Upcoming Appointments */}
+      {upcomingAppointments.length > 0 && (
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Upcoming Sessions</Text>
+            <Link href="/appointments" asChild>
+              <Pressable>
+                <Text style={[styles.seeAllLink, { color: theme.colors.primary }]}>See All</Text>
+              </Pressable>
+            </Link>
           </View>
-          <View style={styles.appointmentDetails}>
-            <View style={styles.appointmentInfo}>
-              <Calendar size={20} color={theme.colors.primary} />
-              <Text style={[styles.appointmentText, { color: theme.colors.text }]}>
-                {new Date(nextAppointment.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </Text>
-            </View>
-            <View style={styles.appointmentInfo}>
-              <Clock size={20} color={theme.colors.primary} />
-              <Text style={[styles.appointmentText, { color: theme.colors.text }]}>{nextAppointment.time}</Text>
-            </View>
-            <Text style={[styles.mentorName, { color: theme.colors.subtitle }]}>
-              with {nextAppointment.mentor.profiles.full_name}
-            </Text>
-          </View>
-        </Pressable>
+          {upcomingAppointments.map((appointment) => {
+            const SessionIcon = getSessionIcon(appointment.type);
+            return (
+              <View key={appointment.id} style={styles.appointmentCard}>
+                <View style={styles.appointmentHeader}>
+                  <View style={styles.sessionInfo}>
+                    <SessionIcon size={20} color={theme.colors.subtitle} />
+                    <Text style={[styles.sessionType, { color: theme.colors.text }]}>
+                      {appointment.type} Session with {appointment.mentor.profiles.full_name}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.appointmentDetails}>
+                  <View style={styles.detailRow}>
+                    <Calendar size={16} color={theme.colors.subtitle} />
+                    <Text style={[styles.detailText, { color: theme.colors.text }]}>
+                      {new Date(appointment.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Clock size={16} color={theme.colors.subtitle} />
+                    <Text style={[styles.detailText, { color: theme.colors.text }]}>{appointment.time}</Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       )}
 
       {/* Hero Section */}
@@ -545,10 +572,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   appointmentCard: {
-    margin: 16,
-    marginBottom: 0,
-    padding: 16,
+    backgroundColor: '#fff',
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -561,28 +588,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  appointmentTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  sessionInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  viewAllText: {
-    fontSize: 14,
+  sessionType: {
+    fontSize: 16,
     fontWeight: '500',
   },
   appointmentDetails: {
     gap: 8,
   },
-  appointmentInfo: {
+  detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  appointmentText: {
-    fontSize: 16,
-  },
-  mentorName: {
+  detailText: {
     fontSize: 14,
-    fontStyle: 'italic',
   },
   hero: {
     height: 250,
