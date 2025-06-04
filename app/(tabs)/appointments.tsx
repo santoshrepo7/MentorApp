@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, CircleAlert, CreditCard as Edit } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as CircleAlert, CreditCard as Edit } from 'lucide-react-native';
 
 interface Appointment {
   id: string;
