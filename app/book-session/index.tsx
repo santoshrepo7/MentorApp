@@ -135,7 +135,6 @@ export default function BookSessionScreen() {
           />
           {!problemDescription.trim() && (
             <View style={styles.warningContainer}>
-              <AlertCircle size={16} color="#92400e" />
               <Text style={styles.warningText}>Please provide a brief description of your needs</Text>
             </View>
           )}

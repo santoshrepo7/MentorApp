@@ -62,6 +62,13 @@ export default function AccountLayout() {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="security"
+        options={{
+          title: 'Security Settings',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack>
   );
 }

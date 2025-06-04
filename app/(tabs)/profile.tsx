@@ -380,7 +380,9 @@ export default function ProfileScreen() {
       <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Security</Text>
         <View style={styles.settingsList}>
-          <TouchableOpacity style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}>
+          <TouchableOpacity 
+              style={[styles.settingItem, { borderBottomColor: theme.colors.border }]}
+              onPress={() => router.push('/account/security')}>
             <View style={[styles.settingIcon, { backgroundColor: theme.colors.background }]}>
               <Shield size={20} color={theme.colors.subtitle} />
             </View>
@@ -390,6 +392,7 @@ export default function ProfileScreen() {
             </View>
             <ChevronRight size={20} color={theme.colors.subtitle} />
           </TouchableOpacity>
+
 
           <TouchableOpacity 
             style={[styles.settingItem, styles.signOutButton]} 
