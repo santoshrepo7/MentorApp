@@ -55,9 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (!session && isProtectedRoute) {
-      router.replace('/sign-in');
-    } else if (session && inAuthGroup) {
-      router.replace('/');
+      router.replace('/(auth)/sign-in');
+    } else if (session && (inAuthGroup || inOnboardingGroup)) {
+      router.replace('/(tabs)');
     }
   }, [session, loading, segments]);
 
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const requireAuth = async () => {
     if (!session) {
-      router.push('/sign-in');
+      router.push('/(auth)/sign-in');
       return false;
     }
     return true;
