@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as AlertCircle } from 'lucide-react-native';
 
 const SESSION_TYPES = [
   { id: 'video', icon: Video, label: 'Video Call' },
