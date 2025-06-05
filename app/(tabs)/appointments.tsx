@@ -148,16 +148,22 @@ export default function AppointmentsScreen() {
         )
       );
 
-      Alert.alert(
-        'Success',
-        `Appointment ${newStatus === 'confirmed' ? 'confirmed' : 'cancelled'} successfully`
-      );
+      Alert.alert('Success', `Appointment ${newStatus} successfully`);
     } catch (error) {
       console.error('Error updating appointment status:', error);
       Alert.alert('Error', 'Failed to update appointment status');
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleChat = (appointment: Appointment) => {
+    router.push({
+      pathname: '/chat',
+      params: {
+        id: appointment.mentor_id === session?.user.id ? appointment.user_id : appointment.mentor_id
+      }
+    });
   };
 
   const confirmAppointment = (appointmentId: string) => {
@@ -293,6 +299,12 @@ export default function AppointmentsScreen() {
               </TouchableOpacity>
             </>
           )}
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => handleChat(item)}>
+            <MessageSquare size={20} color="#fff" />
+            <Text style={styles.actionButtonText}>Chat</Text>
+          </TouchableOpacity>
         </View>
 
         {updating && (
