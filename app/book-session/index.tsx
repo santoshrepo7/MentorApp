@@ -11,19 +11,11 @@ const SESSION_TYPES = [
   { id: 'call', icon: Phone, label: 'Phone Call' }
 ];
 
-const DEFAULT_TIME_SLOTS = [
-  '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'
-];
-
-const DEFAULT_AVAILABILITY = {
-  0: DEFAULT_TIME_SLOTS, // Sunday
-  1: DEFAULT_TIME_SLOTS, // Monday
-  2: DEFAULT_TIME_SLOTS, // Tuesday
-  3: DEFAULT_TIME_SLOTS, // Wednesday
-  4: DEFAULT_TIME_SLOTS, // Thursday
-  5: DEFAULT_TIME_SLOTS, // Friday
-  6: DEFAULT_TIME_SLOTS, // Saturday
-};
+// Generate time slots from 6 AM to 10 PM
+const TIME_SLOTS = Array.from({ length: 17 }, (_, i) => {
+  const hour = i + 6; // Start from 6 AM
+  return `${hour.toString().padStart(2, '0')}:00`;
+});
 
 interface TimeSlot {
   start_time: string;
@@ -60,7 +52,8 @@ export default function BookSessionScreen() {
 
       if (error) throw error;
 
-      const nextSevenDays = Array.from({ length: 7 }, (_, i) => {
+      // Generate next 30 days
+      const nextThirtyDays = Array.from({ length: 30 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() + i);
         return date;
@@ -70,7 +63,7 @@ export default function BookSessionScreen() {
 
       if (availabilityData && availabilityData.length > 0) {
         setHasCustomAvailability(true);
-        nextSevenDays.forEach(date => {
+        nextThirtyDays.forEach(date => {
           const dayOfWeek = date.getDay();
           const daySlots = availabilityData
             .filter(slot => slot.day_of_week === dayOfWeek)
@@ -85,9 +78,8 @@ export default function BookSessionScreen() {
         });
       } else {
         setHasCustomAvailability(false);
-        nextSevenDays.forEach(date => {
-          const dayOfWeek = date.getDay();
-          slots[date.toISOString().split('T')[0]] = DEFAULT_TIME_SLOTS.map(time => ({
+        nextThirtyDays.forEach(date => {
+          slots[date.toISOString().split('T')[0]] = TIME_SLOTS.map(time => ({
             start_time: time,
             end_time: time
           }));
@@ -108,7 +100,7 @@ export default function BookSessionScreen() {
     const slots = availableSlots[dateStr] || [];
     
     if (!hasCustomAvailability) {
-      return DEFAULT_TIME_SLOTS;
+      return TIME_SLOTS;
     }
     
     return slots.reduce((times: string[], slot) => {
@@ -221,36 +213,51 @@ export default function BookSessionScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Select Date</Text>
-        <View style={styles.dateContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dateScrollContainer}>
           {availableDates.map((date, index) => {
             const isSelected = selectedDate?.toDateString() === date.toDateString();
+            const isToday = date.toDateString() === new Date().toDateString();
 
             return (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.dateOption,
-                  isSelected && styles.selectedDate
+                  isSelected && styles.selectedDate,
+                  isToday && styles.todayDate
                 ]}
                 onPress={() => setSelectedDate(date)}>
                 <Text
                   style={[
                     styles.dateDay,
-                    isSelected && styles.selectedDateText
+                    isSelected && styles.selectedDateText,
+                    isToday && styles.todayDateText
                   ]}>
                   {date.toLocaleDateString('en-US', { weekday: 'short' })}
                 </Text>
                 <Text
                   style={[
                     styles.dateNum,
-                    isSelected && styles.selectedDateText
+                    isSelected && styles.selectedDateText,
+                    isToday && styles.todayDateText
                   ]}>
                   {date.getDate()}
+                </Text>
+                <Text
+                  style={[
+                    styles.dateMonth,
+                    isSelected && styles.selectedDateText,
+                    isToday && styles.todayDateText
+                  ]}>
+                  {date.toLocaleDateString('en-US', { month: 'short' })}
                 </Text>
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
 
       <View style={styles.section}>
@@ -260,7 +267,10 @@ export default function BookSessionScreen() {
             This mentor is using default availability. They may update their schedule later.
           </Text>
         )}
-        <View style={styles.timeContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.timeScrollContainer}>
           {timeSlots.map((time) => (
             <TouchableOpacity
               key={time}
@@ -287,7 +297,7 @@ export default function BookSessionScreen() {
               No available time slots for this date
             </Text>
           )}
-        </View>
+        </ScrollView>
       </View>
 
       <View style={styles.section}>
@@ -407,9 +417,10 @@ const styles = StyleSheet.create({
   selectedTypeLabel: {
     color: '#0891b2',
   },
-  dateContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  dateScrollContainer: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    gap: 12,
   },
   dateOption: {
     alignItems: 'center',
@@ -417,10 +428,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    minWidth: 80,
   },
   selectedDate: {
     borderColor: '#0891b2',
     backgroundColor: '#0891b2',
+  },
+  todayDate: {
+    borderColor: '#0891b2',
+    borderWidth: 2,
   },
   dateDay: {
     fontSize: 14,
@@ -428,34 +444,42 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   dateNum: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
     color: '#0f172a',
+    marginBottom: 4,
+  },
+  dateMonth: {
+    fontSize: 14,
+    color: '#64748b',
   },
   selectedDateText: {
     color: '#fff',
   },
-  timeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  todayDateText: {
+    color: '#0891b2',
+  },
+  timeScrollContainer: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
     gap: 12,
   },
   timeOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    minWidth: '45%',
+    minWidth: 100,
+    gap: 8,
   },
   selectedTime: {
     borderColor: '#0891b2',
     backgroundColor: '#f0f9ff',
   },
   timeText: {
-    marginLeft: 8,
     fontSize: 14,
     color: '#64748b',
   },
@@ -467,7 +491,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontStyle: 'italic',
     textAlign: 'center',
-    width: '100%',
     padding: 12,
   },
   defaultAvailabilityNote: {
