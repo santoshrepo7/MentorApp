@@ -461,15 +461,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 16,
   },
   settingsList: {
-    borderRadius: 12,
+    marginTop: 12,
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
   settingIcon: {
@@ -486,7 +485,7 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 16,
     fontWeight: '500',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   settingDescription: {
     fontSize: 14,
