@@ -47,13 +47,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ai-mentor"
-        options={{
-          title: 'AI Mentor',
-          tabBarIcon: ({ size, color }) => <Bot size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="appointments"
         options={{
           title: 'Sessions',
@@ -63,6 +56,13 @@ export default function TabLayout() {
               <NotificationBadge />
             </View>
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="ai-mentor"
+        options={{
+          title: 'AI Mentor',
+          tabBarIcon: ({ size, color }) => <Bot size={size} color={color} />,
         }}
       />
       <Tabs.Screen
