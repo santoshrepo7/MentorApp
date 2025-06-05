@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 20,
-    marginTop: 12,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 18,
