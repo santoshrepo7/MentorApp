@@ -69,6 +69,13 @@ export default function AccountLayout() {
           headerBackTitle: 'Back',
         }}
       />
+      <Stack.Screen
+        name="media"
+        options={{
+          title: 'Media Gallery',
+          headerBackTitle: 'Back',
+        }}
+      />
     </Stack>
   );
 }
