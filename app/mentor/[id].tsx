@@ -32,9 +32,16 @@ interface MentorProfile {
   last_seen: string;
 }
 
+interface MediaItem {
+  id: string;
+  media_url: string;
+  caption: string;
+}
+
 export default function MentorProfileScreen() {
   const { id } = useLocalSearchParams();
   const [mentor, setMentor] = useState<MentorProfile | null>(null);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showChatModal, setShowChatModal] = useState(false);
   const [message, setMessage] = useState('');
@@ -44,6 +51,7 @@ export default function MentorProfileScreen() {
 
   useEffect(() => {
     fetchMentorProfile();
+    fetchMentorMedia();
 
     const subscription = supabase
       .channel('professionals')
@@ -88,6 +96,21 @@ export default function MentorProfileScreen() {
       console.error('Error fetching mentor profile:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchMentorMedia() {
+    try {
+      const { data, error } = await supabase
+        .from('mentor_media')
+        .select('*')
+        .eq('mentor_id', id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setMedia(data || []);
+    } catch (error) {
+      console.error('Error fetching mentor media:', error);
     }
   }
 
@@ -202,7 +225,6 @@ export default function MentorProfileScreen() {
         <Text style={[styles.position, { color: theme.colors.subtitle }]}>
           {mentor.position} at {mentor.company}
         </Text>
-        
 
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -223,31 +245,6 @@ export default function MentorProfileScreen() {
         </View>
       </View>
 
-      {/* Quick Actions */}
-      {/*
-      <View style={[styles.quickActions, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.colors.background }]} 
-            onPress={() => setShowChatModal(true)}>
-            <MessageSquare size={24} color={theme.colors.primary} />
-            <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.colors.background }]} 
-            onPress={handleCall}>
-            <Phone size={24} color={theme.colors.primary} />
-            <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>Call</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: theme.colors.background }]} 
-            onPress={handleEmail}>
-            <Mail size={24} color={theme.colors.primary} />
-            <Text style={[styles.actionButtonText, { color: theme.colors.primary }]}>Email</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      */}
       <Pressable 
         style={[styles.bookButton, { backgroundColor: theme.colors.primary }]} 
         onPress={handleBookSession}>
@@ -259,6 +256,22 @@ export default function MentorProfileScreen() {
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>About</Text>
         <Text style={[styles.bio, { color: theme.colors.text }]}>{mentor.bio}</Text>
       </View>
+
+      {/* Media Gallery Section */}
+      {media.length > 0 && (
+        <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Media Gallery</Text>
+          <View style={styles.mediaGrid}>
+            {media.map((item) => (
+              <Image
+                key={item.id}
+                source={{ uri: item.media_url }}
+                style={styles.mediaImage}
+              />
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Expertise Section */}
       <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
@@ -489,6 +502,16 @@ const styles = StyleSheet.create({
   bio: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mediaImage: {
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: 8,
   },
   tagsContainer: {
     flexDirection: 'row',
