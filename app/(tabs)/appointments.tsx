@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
-import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as CircleAlert, CreditCard as Edit } from 'lucide-react-native';
+import { Calendar, Clock, Video, MessageSquare, Phone, AlertCircle as AlertCircle, CreditCard as Edit } from 'lucide-react-native';
 
 interface Appointment {
   id: string;
@@ -40,6 +40,23 @@ export default function AppointmentsScreen() {
   useEffect(() => {
     if (session?.user) {
       fetchAppointments();
+
+      // Subscribe to appointments changes
+      const subscription = supabase
+        .channel('appointments_changes')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `user_id=eq.${session.user.id},mentor_id=eq.${session.user.id}`,
+        }, () => {
+          fetchAppointments();
+        })
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
   }, [session]);
 
@@ -98,17 +115,31 @@ export default function AppointmentsScreen() {
     try {
       setUpdating(true);
 
-      const { error } = await supabase
+      // Update appointment status
+      const { error: updateError } = await supabase
         .from('appointments')
         .update({ 
           status: newStatus,
           updated_at: new Date().toISOString()
         })
-        .eq('id', appointmentId)
-        .eq('mentor_id', session?.user.id);
+        .eq('id', appointmentId);
 
-      if (error) throw error;
-      
+      if (updateError) throw updateError;
+
+      // Create notification for status change
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          appointment_id: appointmentId,
+          type: newStatus === 'cancelled' ? 'appointment_cancelled' : 'appointment_update',
+          title: newStatus === 'cancelled' ? 'Appointment Cancelled' : 'Appointment Status Updated',
+          message: `Your appointment has been ${newStatus}`,
+          status: 'unread'
+        });
+
+      if (notificationError) throw notificationError;
+
+      // Update local state
       setAppointments(prev => 
         prev.map(apt => 
           apt.id === appointmentId 
@@ -127,16 +158,6 @@ export default function AppointmentsScreen() {
     } finally {
       setUpdating(false);
     }
-  };
-
-  const handleChat = (appointment: Appointment) => {
-    router.push({
-      pathname: '/chat',
-      params: {
-        appointmentId: appointment.id,
-        otherPartyId: appointment.mentor_id === session?.user.id ? appointment.user_id : appointment.mentor_id
-      }
-    });
   };
 
   const confirmAppointment = (appointmentId: string) => {
@@ -251,11 +272,9 @@ export default function AppointmentsScreen() {
                 <Text style={styles.actionButtonText}>Confirm</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: 'transparent', borderColor: theme.colors.error, borderWidth: 1 }]}
+                style={[styles.actionButton, { borderColor: theme.colors.error }]}
                 onPress={() => cancelAppointment(item.id)}>
-                <Text style={{ color: theme.colors.error, fontSize: 16, fontWeight: '600' }}>
-                  Cancel
-                </Text>
+                <Text style={[styles.actionButtonText, { color: theme.colors.error }]}>Cancel</Text>
               </TouchableOpacity>
             </>
           )}
@@ -274,12 +293,6 @@ export default function AppointmentsScreen() {
               </TouchableOpacity>
             </>
           )}
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-            onPress={() => handleChat(item)}>
-            <MessageSquare size={20} color="#fff" />
-            <Text style={styles.actionButtonText}>Chat</Text>
-          </TouchableOpacity>
         </View>
 
         {updating && (
@@ -410,7 +423,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   emptyContainer: {
