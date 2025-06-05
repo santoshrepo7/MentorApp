@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Switch, Alert, Dimensions, Platform } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { 
   Settings, 
@@ -22,6 +22,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import * as ImagePicker from 'expo-image-picker';
 
 // Get screen dimensions
 const { width: screenWidth } = Dimensions.get('window');
@@ -53,6 +54,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [professionalProfile, setProfessionalProfile] = useState<ProfessionalProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const router = useRouter();
   const { signOut, session } = useAuth();
   const { theme, isDarkMode, toggleTheme } = useTheme();
@@ -90,6 +92,70 @@ export default function ProfileScreen() {
       setLoading(false);
     }
   }
+
+  const handleChangePhoto = async () => {
+    try {
+      // Request permissions
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission needed', 'Please grant camera roll permissions to change your photo.');
+          return;
+        }
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setUploadingImage(true);
+        const file = result.assets[0];
+
+        // Upload to Supabase Storage
+        const fileExt = file.uri.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${session?.user.id}/${fileName}`;
+
+        // Convert uri to blob
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+
+        // Upload image
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, blob);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        // Update profile
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
+          .eq('id', session?.user.id);
+
+        if (updateError) throw updateError;
+
+        // Update local state
+        setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+        Alert.alert('Success', 'Profile photo updated successfully');
+      }
+    } catch (error) {
+      console.error('Error changing photo:', error);
+      Alert.alert('Error', 'Failed to update profile photo');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -150,80 +216,24 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Profile Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
         <Image
           source={{ 
             uri: profile?.avatar_url || 
             'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' 
           }}
-          style={styles.coverPhoto}
+          style={styles.avatar}
         />
-        <View style={[styles.headerOverlay, { backgroundColor: 'rgba(0,0,0,0.3)' }]} />
-        
-        <View style={styles.profileInfo}>
-          <Image
-            source={{ 
-              uri: profile?.avatar_url || 
-              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' 
-            }}
-            style={styles.avatar}
-          />
-          
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{profile?.full_name || 'User'}</Text>
-            <Text style={styles.email}>{profile?.email || session?.user?.email}</Text>
-            
-            {professionalProfile && (
-              <View style={styles.badgeContainer}>
-                <View style={styles.mentorBadge}>
-                  <Award size={16} color="#fff" />
-                  <Text style={styles.mentorBadgeText}>Mentor</Text>
-                </View>
-                {professionalProfile.position && (
-                  <View style={[styles.positionBadge, { backgroundColor: theme.colors.primary + '20' }]}>
-                    <Briefcase size={16} color={theme.colors.primary} />
-                    <Text style={[styles.positionText, { color: theme.colors.primary }]}>
-                      {professionalProfile.position}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-
-          <TouchableOpacity style={styles.editButton}>
-            <Camera size={20} color="#fff" />
-            <Text style={styles.editButtonText}>Change Photo</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={styles.changePhotoButton}
+          onPress={handleChangePhoto}
+          disabled={uploadingImage}>
+          <Camera size={20} color={theme.colors.primary} />
+          <Text style={[styles.changePhotoText, { color: theme.colors.primary }]}>
+            {uploadingImage ? 'Uploading...' : 'Change Photo'}
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Quick Stats */}
-      {professionalProfile && (
-        <View style={[styles.statsContainer, { backgroundColor: theme.colors.card }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text }]}>
-              {professionalProfile.years_of_experience}+
-            </Text>
-            <Text style={[styles.statLabel, { color: theme.colors.subtitle }]}>Years</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text }]}>
-              {professionalProfile.expertise?.length || 0}
-            </Text>
-            <Text style={[styles.statLabel, { color: theme.colors.subtitle }]}>Skills</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: theme.colors.text }]}>
-              ${professionalProfile.hourly_rate}
-            </Text>
-            <Text style={[styles.statLabel, { color: theme.colors.subtitle }]}>Per Hour</Text>
-          </View>
-        </View>
-      )}
 
       {/* Account Settings */}
       <View style={[styles.section, { backgroundColor: theme.colors.card }]}>
@@ -423,115 +433,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    height: HEADER_HEIGHT,
-    position: 'relative',
-  },
-  coverPhoto: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  headerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  profileInfo: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    alignItems: 'center',
     padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
   },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: '#fff',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 16,
   },
-  nameContainer: {
-    marginBottom: 16,
-  },
-  name: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 12,
-  },
-  badgeContainer: {
+  changePhotoButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    padding: 8,
   },
-  mentorBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0891b2',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  mentorBadgeText: {
-    color: '#fff',
+  changePhotoText: {
     fontSize: 14,
-    fontWeight: '600',
-  },
-  positionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  positionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  editButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
-    marginBottom: 12,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
+    fontWeight: '500',
   },
   section: {
     padding: 20,
