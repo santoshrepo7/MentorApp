@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/providers/ThemeProvider';
 import { Send, Bot } from 'lucide-react-native';
+import OpenAI from 'openai';
 
 interface Message {
   id: string;
@@ -9,6 +10,14 @@ interface Message {
   role: 'user' | 'assistant';
   timestamp: Date;
 }
+
+const openai = new OpenAI({
+  apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true
+});
+
+const RATE_LIMIT = 5; // messages per minute
+const RATE_WINDOW = 60000; // 1 minute in milliseconds
 
 export default function AIMentorScreen() {
   const [messages, setMessages] = useState<Message[]>([{
@@ -19,30 +28,62 @@ export default function AIMentorScreen() {
   }]);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const messageCountRef = useRef<number>(0);
+  const lastMessageTimeRef = useRef<number>(Date.now());
   const { theme } = useTheme();
+
+  const checkRateLimit = useCallback(() => {
+    const now = Date.now();
+    if (now - lastMessageTimeRef.current > RATE_WINDOW) {
+      // Reset counter if window has passed
+      messageCountRef.current = 0;
+      lastMessageTimeRef.current = now;
+    }
+
+    if (messageCountRef.current >= RATE_LIMIT) {
+      throw new Error('Rate limit exceeded. Please wait a moment before sending more messages.');
+    }
+
+    messageCountRef.current++;
+  }, []);
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: newMessage.trim(),
-      role: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setNewMessage('');
-    setIsTyping(true);
-
     try {
-      // Simulate AI response (replace with actual API call)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      checkRateLimit();
+      setError(null);
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: newMessage.trim(),
+        role: 'user',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      setNewMessage('');
+      setIsTyping(true);
+
+      const completion = await openai.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a knowledgeable and helpful mentor. Your responses should be educational, encouraging, and focused on helping the user learn and grow. Provide specific examples and actionable advice when appropriate.'
+          },
+          {
+            role: 'user',
+            content: userMessage.content
+          }
+        ],
+        model: 'gpt-3.5-turbo',
+      });
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm here to help you learn and grow. What specific topic would you like to explore or discuss?",
+        content: completion.choices[0]?.message?.content || "I apologize, but I couldn't generate a response. Please try again.",
         role: 'assistant',
         timestamp: new Date()
       };
@@ -50,6 +91,7 @@ export default function AIMentorScreen() {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('Error getting AI response:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred while getting the response');
     } finally {
       setIsTyping(false);
     }
@@ -109,9 +151,16 @@ export default function AIMentorScreen() {
         onLayout={() => flatListRef.current?.scrollToEnd()}
       />
 
+      {error && (
+        <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '20' }]}>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+        </View>
+      )}
+
       {isTyping && (
         <View style={[styles.typingIndicator, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.typingText, { color: theme.colors.subtitle }]}>AI is typing...</Text>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={[styles.typingText, { color: theme.colors.subtitle }]}>AI is thinking...</Text>
         </View>
       )}
 
@@ -126,6 +175,7 @@ export default function AIMentorScreen() {
           placeholder="Ask your AI mentor..."
           placeholderTextColor={theme.colors.placeholder}
           multiline
+          editable={!isTyping}
         />
         <TouchableOpacity
           style={[
@@ -134,8 +184,8 @@ export default function AIMentorScreen() {
             { backgroundColor: newMessage.trim() ? theme.colors.primary : theme.colors.border }
           ]}
           onPress={handleSend}
-          disabled={!newMessage.trim()}>
-          <Send size={20} color={newMessage.trim() ? '#fff' : theme.colors.placeholder} />
+          disabled={!newMessage.trim() || isTyping}>
+          <Send size={20} color={newMessage.trim() && !isTyping ? '#fff' : theme.colors.placeholder} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -200,16 +250,26 @@ const styles = StyleSheet.create({
   messageTime: {
     fontSize: 12,
   },
+  errorContainer: {
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
   typingIndicator: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 16,
-    alignSelf: 'flex-start',
+    gap: 8,
   },
   typingText: {
     fontSize: 14,
-    fontStyle: 'italic',
   },
   inputContainer: {
     flexDirection: 'row',
