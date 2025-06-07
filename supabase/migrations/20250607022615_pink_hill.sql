@@ -1,0 +1,60 @@
+/*
+  # Add Career and Education Subcategories Safely
+
+  1. Changes
+    - Add career subcategories with conflict handling
+    - Add education subcategories with conflict handling
+    - Use ON CONFLICT DO NOTHING to prevent duplicate key errors
+
+  2. Implementation
+    - Safely insert subcategories without failing on existing entries
+    - Maintains data integrity while adding new subcategories
+*/
+
+-- Career Subcategories - Insert only if they don't already exist
+INSERT INTO subcategories (id, category_id, name, description) VALUES
+  ('career-planning', 'career', 'Career Planning', 'Strategic planning and goal setting for career development'),
+  ('resume-writing', 'career', 'Resume Writing', 'Professional resume and CV writing techniques'),
+  ('interview-prep', 'career', 'Interview Preparation', 'Comprehensive interview preparation and practice'),
+  ('salary-negotiation', 'career', 'Salary Negotiation', 'Strategies for negotiating compensation and benefits'),
+  ('leadership-dev', 'career', 'Leadership Development', 'Building leadership skills and management capabilities'),
+  ('networking', 'career', 'Professional Networking', 'Building and maintaining professional relationships'),
+  ('personal-branding', 'career', 'Personal Branding', 'Developing and maintaining a professional image'),
+  ('career-transition', 'career', 'Career Transition', 'Guidance for changing careers or industries'),
+  ('remote-work', 'career', 'Remote Work Success', 'Strategies for thriving in remote work environments'),
+  ('workplace-comm', 'career', 'Workplace Communication', 'Effective communication in professional settings'),
+  ('exec-presence', 'career', 'Executive Presence', 'Developing leadership presence and influence'),
+  ('startup-careers', 'career', 'Startup Careers', 'Navigation and growth in startup environments'),
+  ('work-life-balance', 'career', 'Work-Life Balance', 'Managing professional and personal life effectively'),
+  ('freelancing', 'career', 'Freelancing', 'Building and managing a freelance career'),
+  ('public-speaking', 'career', 'Public Speaking', 'Professional presentation and public speaking skills'),
+  ('conflict-resolution', 'career', 'Conflict Resolution', 'Managing workplace conflicts and negotiations'),
+  ('project-management', 'career', 'Project Management', 'Project planning and execution skills'),
+  ('time-management', 'career', 'Time Management', 'Productivity and time management strategies'),
+  ('workplace-ethics', 'career', 'Workplace Ethics', 'Professional ethics and decision-making'),
+  ('intl-careers', 'career', 'International Careers', 'Working across cultures and global markets')
+ON CONFLICT (id) DO NOTHING;
+
+-- Education Subcategories - Insert only if they don't already exist
+INSERT INTO subcategories (id, category_id, name, description) VALUES
+  ('study-skills', 'education', 'Study Skills', 'Effective learning and study techniques'),
+  ('test-prep', 'education', 'Test Preparation', 'Strategies for standardized tests and examinations'),
+  ('academic-writing', 'education', 'Academic Writing', 'Research and academic paper writing skills'),
+  ('grad-school-prep', 'education', 'Graduate School Preparation', 'Preparing for graduate school admission'),
+  ('research-methods', 'education', 'Research Methods', 'Academic and professional research methodologies'),
+  ('stem-subjects', 'education', 'STEM Education', 'Science, Technology, Engineering, and Mathematics'),
+  ('language-learning', 'education', 'Language Learning', 'Strategies for learning new languages'),
+  ('digital-literacy', 'education', 'Digital Literacy', 'Essential digital skills and technology education'),
+  ('creative-arts', 'education', 'Creative Arts Education', 'Visual, performing, and creative arts learning'),
+  ('special-education', 'education', 'Special Education', 'Support for diverse learning needs'),
+  ('adult-education', 'education', 'Adult Education', 'Continuing education and lifelong learning'),
+  ('online-learning', 'education', 'Online Learning', 'Success strategies for online education'),
+  ('early-childhood', 'education', 'Early Childhood Education', 'Educational foundations for young learners'),
+  ('curriculum-dev', 'education', 'Curriculum Development', 'Creating and improving educational content'),
+  ('educational-tech', 'education', 'Educational Technology', 'Using technology in teaching and learning'),
+  ('assessment-eval', 'education', 'Assessment and Evaluation', 'Educational assessment strategies'),
+  ('inclusive-edu', 'education', 'Inclusive Education', 'Creating inclusive learning environments'),
+  ('gifted-education', 'education', 'Gifted Education', 'Supporting advanced learners'),
+  ('edu-leadership', 'education', 'Educational Leadership', 'Leadership in educational settings'),
+  ('stem-research', 'education', 'STEM Research', 'Advanced research in STEM fields')
+ON CONFLICT (id) DO NOTHING;
